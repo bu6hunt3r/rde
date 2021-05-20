@@ -1,1 +1,69 @@
-#+TITLE: Systems
+#+TITLE: System Configuration with Guix
+#+PROPERTY: header-args    :tangle-mode (identity #o444)
+#+PROPERTY: header-args sh :tangle-mode (identity #o555)
+
+* Table of Contents
+:PROPERTIES:
+:TOC:   :include all :ignore this
+:END:
+:CONTENTS:
+:END:
+
+* Channels
+
+Guix supports the concept of  [[https://guix.gnu.org/manual/en/html_node/Channels.html#Channels][channels]] which basically amount to Git repositories which contain Guix package definitions that can be installed on your machine. Aside from the =%default channels list, I also use the [[https://gitlab.com/nonguix/nonguix][Nonguix]] channel to install packages that aren't included with Guix by default like the non-free Linux kernel.
+
+*.config/guix/channels.scm:*
+#+begin_src scheme :tangle .config/guix/channels.scm
+;; -*- geiser-scheme-implementation: guile -*-
+(list (channel
+        (name 'guix)
+        (url "https://git.savannah.gnu.org/git/guix.git")
+        (commit
+          "7ff515aa511afbaf177a8bde68bde6a3878ca447")
+        (introduction
+          (make-channel-introduction
+            "9edb3f66fd807b096b48283debdcddccfea34bad"
+            (openpgp-fingerprint
+              "BBB0 2DDF 2CEA F6A8 0D1D  E643 A2A0 6DF2 A33A 54FA"))))
+      (channel
+       (name 'flat)
+       (url "https://github.com/flatwhatson/guix-channel.git")
+       (introduction
+        (make-channel-introduction
+         "33f86a4b48205c0dc19d7c036c85393f0766f806"
+         (openpgp-fingerprint
+          "736A C00E 1254 378B A982  7AF6 9DBE 8265 81B6 4490"))))
+      (channel
+        (name 'nonguix)
+        (url "https://gitlab.com/nonguix/nonguix")
+        (commit
+          "22cb4bb981ab9da9b8c0bba32c3198d31c0544b4")))
+
+#+end_src
+
+** Updating pinned channels
+
+Once you've pinned your channel configuration, you might want to update them to newer commits in the future. One strategy can be to have a separate channel file with the base list of channels and pass that to guix pull
+
+*.config/guix/my-channels.scm:*
+#+begin_src scheme :tangle .config/guix/channels.scm
+(cons* (channel
+        (name 'nonguix)
+        (url "https://gitlab.com/nonguix/nonguix"))
+       (channel
+        (name 'flat)
+        (url "https://github.com/flatwhatson/guix-channel.git"))
+       %default-channels)
+#+end_src
+
+*.config/guix/update-channels.scm:*
+#+begin_src sh :tangle .config/guix/update-channels.sh
+#!/bin/sh
+guix pull --channels=$HOME/.config/guix/my-channels.scm
+guix-describe --format=channels > ~/.config/guix/channels.scm
+#+end_src
+
+* Systems
+
+** Base Configuration
