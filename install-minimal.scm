@@ -17,8 +17,11 @@
 
   (kernel linux)
   (initrd microcode-initrd)
-  (firmware (cons* iwlwifi-firmware
-                   %base-firmware))
+  (firmware (list linux-firmware))
+
+  (kernel-arguments '("quiet" "net.ifnames=0"))
+
+  (keyboard-layout (keyboard-layout "de" #:model "thinkpad"))
 
   ;; Use the UEFI variant of GRUB with the EFI System
   ;; Partition mounted on /boot/efi.

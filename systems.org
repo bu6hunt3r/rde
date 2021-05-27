@@ -204,9 +204,9 @@ Define the =base-operating-system= which will be inherited by all machine config
     ;; Use the UEFI variant of GRUB with the EFI System
     ;; Partition mounted on /boot/efi.
     (bootloader (bootloader-configuration
-                 (bootloader grub-bootloader)
-                 (target "/dev/sda")
-                 (keyboard-layout keyboard-layout)))
+                (bootloader grub-efi-bootloader)
+                (target "/boot/efi")
+                (keyboard-layout keyboard-layout)))
 
 
     ;; Guix doesn't like it when there isn't a file-systems
@@ -338,7 +338,7 @@ I also define a function called =dw/system-settings-get= which can retrieve thes
 
 =faulobst= is a ThinkPad X1 Carbon 3rd Gen that I use for daily work.
 
-*.config/guix/systems/phantom.scm:*
+*.config/guix/systems/faulobst.scm:*
 
 #+begin_src scheme :tangle .config/guix/systems/faulobst.scm
 
@@ -352,19 +352,25 @@ I also define a function called =dw/system-settings-get= which can retrieve thes
  (inherit base-operating-system)
  (host-name "faulobst")
 
- (mapped-devices
-  (list (mapped-device
-         (source (uuid "091b8ad5-efb3-4c5b-8370-7db99c404a30"))
-         (target "system-root")
-         (type luks-device-mapping))))
+  (mapped-devices
+   (list (mapped-device
+          (source (uuid "8eea6fdf-d257-41f0-a9f5-eb521f606c26"))
+          (target "system-root")
+          (type luks-device-mapping))))
 
- (file-systems (cons*
-                (file-system
-                 (device (file-system-label "system-root"))
-                 (mount-point "/")
-                 (type "ext4")
-                 (dependencies mapped-devices))
-                %base-file-systems)))
+  ;; Assume the target root file system is labelled "my-root",
+  ;; and the EFI System Partition has UUID 1234-ABCD.
+  (file-systems (append
+                 (list (file-system
+                         (device (file-system-label "system-root"))
+                         (mount-point "/")
+                         (type "ext4")
+                         (dependencies mapped-devices))
+                       (file-system
+                         (device (uuid "B64E-A856" 'fat))
+                         (mount-point "/boot/efi")
+                         (type "vfat")))
+                 %base-file-systems))
 
 #+end_src
 
@@ -429,7 +435,7 @@ To install Guix on another machine, you first to build need a USB image.  Since 
       ;; Add the 'net.ifnames' argument to prevent network interfaces
       ;; from having really long names.  This can cause an issue with
       ;; wpa_supplicant when you try to connect to a wifi network.
-      (kernel-arguments '("quiet" "modprobe.blacklist=radeon" "net.ifnames=0"))
+      (kernel-arguments '("quiet" "net.ifnames=0"))
 
       ;; Add some extra packages useful for the installation process
       (packages
