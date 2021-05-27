@@ -15,11 +15,13 @@
   (timezone "Europe/Berlin")
   (locale "de_DE.utf8")
 
-  (kernel linux)
+  (kernel linux-nonfree)
   (initrd microcode-initrd)
-  (firmware (list linux-firmware))
+  (firmware (append (list
+             iwlwifi-firmware-nonfree) 
+             %base-firmware))
 
-  (kernel-arguments '("quiet" "net.ifnames=0"))
+  (kernel-arguments '("quiet" "modprobe.blacklist=pcspkr,snd_pcsp" "net.ifnames=0"))
 
   (keyboard-layout (keyboard-layout "de" #:model "thinkpad"))
 
