@@ -15,10 +15,9 @@
   (timezone "Europe/Berlin")
   (locale "de_DE.utf8")
 
-  (kernel linux-nonfree)
+  (kernel linux)
   (initrd microcode-initrd)
-  (firmware (append (list
-             iwlwifi-firmware-nonfree) 
+  (firmware (cons* iwlwifi-firmware 
              %base-firmware))
 
   (kernel-arguments '("quiet" "modprobe.blacklist=pcspkr,snd_pcsp" "net.ifnames=0"))
