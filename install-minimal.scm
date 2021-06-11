@@ -4,9 +4,12 @@
 
 (use-modules (gnu) (gnu system nss))
 (use-modules (nongnu packages linux) 
-             (nongnu system linux-initrd))
+             (nongnu system linux-initrd)
+             (srfi srfi-1)
+             (guix channels)
+             (guix inferior))
 
-(use-service-modules desktop)
+(use-service-modules desktop xorg)
 (use-package-modules bootloaders certs emacs emacs-xyz ratpoison suckless wm
                      xorg)
 
@@ -15,9 +18,33 @@
   (timezone "Europe/Berlin")
   (locale "de_DE.utf8")
 
-  (kernel linux)
-  (initrd microcode-initrd)
-  (firmware (list linux-firmware))
+  (kernel
+   (let*
+       ((channels
+         (list (channel
+                (name 'nonguix)
+                (url "https://gitlab.com/nonguix/nonguix")
+                (commit "9f0740a1ad240a009f764a211c76c2d3cb056677"))
+               (channel
+                (name 'guix)
+                (url "https://git.savannah.gnu.org/git/guix.git")
+                (commit "bd32bcca56ae4a27e754e43ace9bf28b0cae298e"))
+               ))
+        (inferior
+         (inferior-for-channels channels)))
+     (first (lookup-inferior-packages inferior "linux" "5.12.6"))))
+  (initrd
+   (lambda
+       (file-systems . rest)
+     (apply microcode-initrd file-systems
+            #:initrd base-initrd
+            #:microcode-packages
+            (list intel-microcode)
+            rest)))
+  (firmware
+   (cons* iwlwifi-firmware
+          ibt-hw-firmware
+          %base-firmware))
 
   (kernel-arguments '("quiet" "net.ifnames=0"))
 
@@ -71,7 +98,10 @@
 
   ;; Use the "desktop" services, which include the X11
   ;; log-in service, networking with NetworkManager, and more.
-  (services %desktop-services)
+  (services (cons (set-xorg-configuration
+                     (xorg-configuration
+                       (keyboard-layout keyboard-layout))) 
+                   %desktop-services))
 
   ;; Allow resolution of '.local' host names with mDNS.
   (name-service-switch %mdns-host-lookup-nss))
