@@ -46,7 +46,7 @@
           ibt-hw-firmware
           %base-firmware))
 
-  (kernel-arguments '("quiet" "net.ifnames=0"))
+  (kernel-arguments '("quiet" "modprobe.blacklist=pcspkr,snd_pcsp" "net.ifnames=0"))
 
   (keyboard-layout (keyboard-layout "de" #:model "thinkpad"))
 
