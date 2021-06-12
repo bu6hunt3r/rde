@@ -192,9 +192,33 @@ Define the =base-operating-system= which will be inherited by all machine config
     (locale "de_DE.utf8")
 
     ;; Use non-free Linux and firmware
-    (kernel linux)
-    (firmware (list linux-firmware))
-    (initrd microcode-initrd)
+    (kernel
+     (let*
+       ((channels
+         (list (channel
+                (name 'nonguix)
+                (url "https://gitlab.com/nonguix/nonguix")
+                (commit "9f0740a1ad240a009f764a211c76c2d3cb056677"))
+               (channel
+                (name 'guix)
+                (url "https://git.savannah.gnu.org/git/guix.git")
+                (commit "bd32bcca56ae4a27e754e43ace9bf28b0cae298e"))
+               ))
+        (inferior
+         (inferior-for-channels channels)))
+     (first (lookup-inferior-packages inferior "linux" "5.12.6"))))
+    (firmware
+     (cons* iwlwifi-firmware
+          ibt-hw-firmware
+          %base-firmware))
+    (initrd
+     (lambda
+       (file-systems . rest)
+     (apply microcode-initrd file-systems
+            #:initrd base-initrd
+            #:microcode-packages
+            (list intel-microcode)
+            rest)))
 
     ;; Choose US English keyboard layout.  The "altgr-intl"
     ;; variant provides dead keys for accented characters.
@@ -334,7 +358,7 @@ I also define a function called =dw/system-settings-get= which can retrieve thes
 
 #+end_src
 
-*** phantom
+*** faulobst
 
 =faulobst= is a ThinkPad X1 Carbon 3rd Gen that I use for daily work.
 
@@ -370,7 +394,7 @@ I also define a function called =dw/system-settings-get= which can retrieve thes
                          (device (uuid "B64E-A856" 'fat))
                          (mount-point "/boot/efi")
                          (type "vfat")))
-                 %base-file-systems))
+                 %base-file-systems)))
 
 #+end_src
 
@@ -435,7 +459,7 @@ To install Guix on another machine, you first to build need a USB image.  Since 
       ;; Add the 'net.ifnames' argument to prevent network interfaces
       ;; from having really long names.  This can cause an issue with
       ;; wpa_supplicant when you try to connect to a wifi network.
-      (kernel-arguments '("quiet" "net.ifnames=0"))
+      (kernel-arguments '("quiet" "modprobe.blacklist=pcspkr,snd_pcsp" "net.ifnames=0"))
 
       ;; Add some extra packages useful for the installation process
       (packages
