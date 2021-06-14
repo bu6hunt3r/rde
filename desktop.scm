@@ -40,65 +40,88 @@
 
 (define os
   (operating-system
-   (host-name "faulobst")
-   (time-zone "Europe/Berlin")
-   (locale "de_DE.utf8")
+    (host-name "antelope")
+    (timezone "Europe/Berlin")
+    (locale "de_DE.utf8")
 
-   (keyboard-layout
-    (keyboard-layout "de"))
-   (bootloader (bootloader-configuration
-                (bootloader grub-bootloader)
-                (target "/dev/sda1")
-                (keyboard-layout keyboard-layout)))
+    (keyboard-layout
+     (keyboard-layout "de"))
+    ;; Use the UEFI variant of GRUB with the EFI System
+    ;; Partition mounted on /boot/efi.
+    (bootloader (bootloader-configuration
+                 (bootloader grub-bootloader)
+                 (target "/dev/sda1")
+                 (keyboard-layout keyboard-layout)))
 
-   (mapped-devices (list (mapped-device
-                          (source (uuid ""))
-                          (target "enc")
-                          (type luks-device-mapping))))
+    ;; Specify a mapped device for the encrypted root partition.
+    ;; The UUID is that returned by 'cryptsetup luksUUID'.
 
-   (file-systems
-    (append
-     (list (file-system
-            (device (file-system-label "enc"))
-            (mount-point "/")
-            (type "ext4")
-            (dependencies mapped-devices)))
-     %base-file-systems))
+    ;; grub 2.0.4 doesn't support luks2
+    ;; <https://wiki.archlinux.org/title/GRUB>
+    (mapped-devices (list (mapped-device
+                           (source (uuid ""))
+                           (target "enc")
+                           (type luks-device-mapping))))
 
-   (users (cons (user-account
-                 (name "cr0c0")
-                 (comment "myself")
-                 (password (crypt "123456" "$6$"))
-                 (group "users")
-                 (supplementary-groups '("wheel" "netdev"
-                                         "audio" "video")))
-                %base-user-accounts))
-   (packages (append
-              (map specification->package+output
-                   '(;; System packages
-                     "nss-certs"))
-              %base-package-disk-utilities
-              %base-packages))
-   (services
-    (append
-     (list
-      (simple-service 'switch-to-tty2 shepherd-root-service-type
-                      (list (shepherd-service
-                             (provision '(kbd))
-                             (requirement '(virtual-terminal))
-                             (start #~(lambda ()
-                                        (invoke #$(file-append kbd "/bin/chvt") "2")))
-                             (respawn? #f))))
-      (service pcscd-service-type)
-      (screen-locker-service swaylock "swaylock")
-      (udev-rules-service
-       'backlight
-       (file->udev-rule "90-backlight.rules"
-                        (file-append light "/lib/udev/rules.d/90-backlight.rules")))
+    (file-systems (append
+                   (list (file-system
+                          (device (file-system-label "guix"))
+                          (mount-point "/")
+                          (type "ext4")
+                          (dependencies mapped-devices)))
+                   %base-file-systems))
+
+    ;; Create user `bob' with `alice' as its initial password.
+    (users (cons (user-account
+                  (name "bob")
+                  (comment "Alice's brother")
+                  (password (crypt "alice" "$6$abc"))
+                  (group "users")
+                  (supplementary-groups '("wheel" "netdev"
+                                          "audio" "video")))
+		 %base-user-accounts))
+
+    ;; This is where we specify system-wide packages.
+    (packages (append
+	       (map specification->package+output
+		    '(;; System packages
+		      "nss-certs"))
+	       %base-packages-disk-utilities
+	       %base-packages))
+
+    (kernel-loadable-modules (list v4l2loopback-linux-module))
+    (services
+     (append
+      (list
+       ;; (simple-service
+       ;;  'add-xdg-desktop-portals
+       ;;  dbus-root-service-type
+       ;;  (list xdg-desktop-portal xdg-desktop-portal-wlr))
+       (simple-service 'switch-to-tty2 shepherd-root-service-type
+                       (list (shepherd-service
+                              (provision '(kdb))
+                              (requirement '(virtual-terminal))
+                              (start #~(lambda ()
+                                         (invoke #$(file-append kbd "/bin/chvt") "2")))
+                              (respawn? #f))))
+       (service pcscd-service-type)
+       (screen-locker-service swaylock "swaylock")
+       (udev-rules-service
+	'backlight
+	(file->udev-rule "90-backlight.rules"
+			 (file-append light "/lib/udev/rules.d/90-backlight.rules"))))
       (remove (lambda (service)
-                (member (service-kind service)
-                        (list gdm-service-type
-                              screen-locker-service-type)))
-              %desktop-services)))))
+		(member (service-kind service)
+			(list gdm-service-type
+			      screen-locker-service-type)))
+	      %desktop-services)))
 
-  os
+    ;; Allow resolution of '.local' host names with mDNS.
+    ;; (name-service-switch %mdns-host-lookup-nss)
+    ))
+
+;; (use-modules (guix store)
+;; 	     (guix derivations))
+;; (with-store store
+;;     (run-with-store store (operating-system-derivation os)))
+os
