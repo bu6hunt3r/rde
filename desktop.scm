@@ -73,9 +73,9 @@
 
     ;; Create user `bob' with `alice' as its initial password.
     (users (cons (user-account
-                  (name "bob")
-                  (comment "Alice's brother")
-                  (password (crypt "alice" "$6$abc"))
+                  (name "cr0c0")
+                  (comment "myself")
+                  (password (crypt "123456" "$6$abc"))
                   (group "users")
                   (supplementary-groups '("wheel" "netdev"
                                           "audio" "video")))
