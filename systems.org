@@ -110,7 +110,9 @@ sudo -E guix system -L ~/.dotfiles/.config/guix/systems reconfigure ~/.dotfiles/
   #:use-module (gnu packages version-control)
   #:use-module (gnu packages package-management)
   #:use-module (nongnu packages linux)
-  #:use-module (nongnu system linux-initrd))
+  #:use-module (nongnu system linux-initrd)
+  #:use-module (guix channels)
+  #:use-module (guix inferior))
 
 (use-service-modules nix)
 (use-service-modules desktop xorg)
@@ -275,6 +277,8 @@ Define the =base-operating-system= which will be inherited by all machine config
                         stow
                         vim
                         emacs
+                        emacs-exwm
+                        emacs-desktop-environment
                         xterm
                         bluez
                         bluez-alsa
@@ -653,12 +657,12 @@ Updating my dotfiles requires running a script in Emacs to loop over all of my l
 #+begin_src emacs-lisp :tangle .emacs.d/tangle-dotfiles.el
 
   (require 'org)
-  (load-file "~/.dotfiles/.emacs.d/lisp/dw-settings.el")
+  (load-file "~/rde/.emacs.d/lisp/dw-settings.el")
 
   ;; Don't ask when evaluating code blocks
   (setq org-confirm-babel-evaluate nil)
 
-  (let* ((dotfiles-path (expand-file-name "~/.dotfiles"))
+  (let* ((dotfiles-path (expand-file-name "~/rde"))
 	 (org-files (directory-files dotfiles-path nil "\\.org$")))
 
     (defun dw/tangle-org-file (org-file)
@@ -666,10 +670,10 @@ Updating my dotfiles requires running a script in Emacs to loop over all of my l
       (org-babel-tangle-file (expand-file-name org-file dotfiles-path)))
 
     ;; Tangle Systems.org first
-    (dw/tangle-org-file "Systems.org")
+    (dw/tangle-org-file "systems.org")
 
     (dolist (org-file org-files)
-      (unless (member org-file '("README.org" "Systems.org"))
+      (unless (member org-file '("README.org" "systems.org"))
       	(dw/tangle-org-file org-file))))
 
 #+end_src
