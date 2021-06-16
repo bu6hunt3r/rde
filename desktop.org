@@ -149,7 +149,7 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
   :after (exwm)
   :config
   (exwm-randr-enable)
-  (setq exwm-randr-workspace-monitor-plist '(4 "eDP-1")))
+  (setq exwm-randr-workspace-monitor-plist '(4 "DP-2")))
 
 #+end_src
 
@@ -193,10 +193,6 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
       (exwm-workspace-switch-create 0)
       (persp-switch "Chat")
 
-      ;; Launch Telega in workspace 0 if we've logged in before
-      (when (file-exists-p "~/.telega/db.sqlite")
-        (telega nil))
-
       (persp-kill "Main")
       (exwm-workspace-switch-create 1)
       (exwm-workspace-switch-create 2)
@@ -218,7 +214,6 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
     ;; Launch apps that will run in the background
     (exwm/run-in-background "dunst")
     (exwm/run-in-background "nm-applet")
-    (exwm/run-in-background "syncthing-gtk --minimized")
     (exwm/run-in-background "udiskie -t")
     (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
 
@@ -233,17 +228,8 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
     (defun dw/setup-window-by-class ()
       (interactive)
       (pcase exwm-class-name
-        ("Pidgin" (exwm-workspace-move-window 0))
-        ("Pidgin<2>" (exwm-workspace-move-window 0))
-        ("discord" (exwm-workspace-move-window 3))
-        ("Microsoft Teams - Preview" (exwm-workspace-move-window 3))
-        ("Spotify" (exwm-workspace-move-window 4))
         ("Vimb" (exwm-workspace-move-window 2))
-        ("qutebrowser" (exwm-workspace-move-window 2))
-        ("qjackctl" (exwm-floating-toggle-floating))
-        ("mpv" (exwm-floating-toggle-floating)
-               (dw/exwm-floating-toggle-pinned))
-        ("gsi" (exwm-input-toggle-keyboard))))
+        ("qutebrowser" (exwm-workspace-move-window 2))))
 
     ;; Do some post-init setup
     (add-hook 'exwm-init-hook #'dw/exwm-init-hook)
@@ -269,112 +255,6 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
     :config
     (exwm-systemtray-enable)
     (setq exwm-systemtray-height 35))
-
-#+end_src
-
-** Desktop Configuration
-
-#+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
-
-(defun dw/run-xmodmap ()
-  (interactive)
-  (start-process-shell-command "xmodmap" nil "xmodmap ~/.dotfiles/.config/i3/Xmodmap"))
-
-(defun dw/update-wallpapers ()
-  (interactive)
-  (start-process-shell-command
-   "feh" nil
-   (format "feh --bg-scale ~/.dotfiles/backgrounds/%s" (alist-get 'desktop/background dw/system-settings))))
-
-(setq dw/panel-process nil)
-(defun dw/kill-panel ()
-  (interactive)
-  (when dw/panel-process
-    (ignore-errors
-      (kill-process dw/panel-process)))
-  (setq dw/panel-process nil))
-
-(defun dw/start-panel ()
-  (interactive)
-  (dw/kill-panel)
-  (setq dw/panel-process (start-process-shell-command "polybar" nil "polybar panel")))
-
-(defun dw/update-screen-layout ()
-  (interactive)
-  (let ((layout-script "~/.bin/update-screens"))
-     (message "Running screen layout script: %s" layout-script)
-     (start-process-shell-command "xrandr" nil layout-script)))
-
-(defun dw/configure-desktop ()
-  (interactive)
-    (dw/run-xmodmap)
-    (dw/update-screen-layout)
-    (run-at-time "2 sec" nil (lambda () (dw/update-wallpapers))))
-
-(defun dw/on-exwm-init ()
-  (dw/configure-desktop)
-  (dw/start-panel))
-
-(when dw/exwm-enabled
-  ;; Configure the desktop for first load
-  (add-hook 'exwm-init-hook #'dw/on-exwm-init))
-
-#+end_src
-
-** Panel
-
-#+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
-
-(defun dw/send-polybar-hook (name number)
-  (start-process-shell-command "polybar-msg" nil (format "polybar-msg hook %s %s" name number)))
-
-(defun dw/update-polybar-exwm (&optional path)
-  (dw/send-polybar-hook "exwm" 1)
-  (dw/send-polybar-hook "exwm-path" 1))
-
-(defun dw/update-polybar-telegram ()
-  (dw/send-polybar-hook "telegram" 1))
-
-(defun dw/polybar-exwm-workspace ()
-  (pcase exwm-workspace-current-index
-    (0 "")
-    (1 "")
-    (2 "")
-    (3 "")
-    (4 "")))
-
-(defun dw/polybar-exwm-workspace-path ()
-  (let ((workspace-path (frame-parameter nil 'bufler-workspace-path-formatted)))
-    (if workspace-path
-        (substring-no-properties workspace-path)
-      "")))
-
-(defun dw/polybar-mail-count (max-count)
-  (if (and dw/mail-enabled dw/mu4e-inbox-query)
-    (let* ((mail-count (shell-command-to-string
-                         (format "mu find --nocolor -n %s \"%s\" | wc -l" max-count dw/mu4e-inbox-query))))
-      (format " %s" (string-trim mail-count)))
-    ""))
-
-(defun dw/telega-normalize-name (chat-name)
-  (let* ((trimmed-name (string-trim-left (string-trim-right chat-name "}") "◀{"))
-         (first-name (nth 0 (split-string trimmed-name " "))))
-    first-name))
-
-(defun dw/propertized-to-polybar (buffer-name)
-  (if-let* ((text (substring-no-properties buffer-name))
-            (fg-face (get-text-property 0 'face buffer-name))
-            (fg-color (face-attribute fg-face :foreground)))
-    (format "%%{F%s}%s%%{F-}" fg-color (dw/telega-normalize-name text))
-    text))
-
-(defun dw/polybar-telegram-chats ()
-  (if (> (length tracking-buffers) 0)
-    (format " %s" (string-join (mapcar 'dw/propertized-to-polybar tracking-buffers) ", "))
-    ""))
-
-(add-hook 'exwm-workspace-switch-hook #'dw/update-polybar-exwm)
-(add-hook 'bufler-workspace-set-hook #'dw/update-polybar-exwm)
 
 #+end_src
 
@@ -475,7 +355,6 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
 - https://github.com/ch11ng/exwm/wiki
 - https://www.reddit.com/r/emacs/comments/6huok9/exwm_configs/
 - https://ambrevar.xyz/de/index.html
-
 
 * Applications
 
