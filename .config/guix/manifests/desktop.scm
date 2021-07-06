@@ -26,5 +26,8 @@
    "font-awesome"
    "font-google-material-design-icons"
    "gs-fonts"
+   "gtk-launch"
+   
+   "polybar"
    
 ))

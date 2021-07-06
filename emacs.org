@@ -1,0 +1,88 @@
+#+TITLE: Emacs Guix Environment
+* Emacs Profile
+* Keep .emacs.d Clean
+
+I don't want a bunch of transient files showing up as untracked in the Git repo so I move them all to another location.
+
+#+begin_src emacs-lisp
+
+  ;; Change the user-emacs-directory to keep unwanted things out of ~/.emacs.d
+  (setq user-emacs-directory (expand-file-name "~/.cache/emacs/")
+        url-history-file (expand-file-name "url/history" user-emacs-directory))
+
+  ;; Use no-littering to automatically set common paths to the new user-emacs-directory
+  (use-package no-littering)
+
+  ;; Keep customization settings in a temporary file (thanks Ambrevar!)
+  (setq custom-file
+        (if (boundp 'server-socket-dir)
+            (expand-file-name "custom.el" server-socket-dir)
+          (expand-file-name (format "emacs-custom-%s.el" (user-uid)) temporary-file-directory)))
+  (load custom-file t)
+
+#+end_src
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-no-littering"
+
+#+end_src
+
+* Desktop Environment
+
+Load up the desktop environment if on a machine that supports it and the =--use-exwm= argument was passed to Emacs on startup.  Desktop environment and window management code can be found in Desktop.org.
+
+#+begin_src emacs-lisp
+
+  (setq dw/exwm-enabled (and (not dw/is-termux)
+                             (eq window-system 'x)
+                             (seq-contains command-line-args "--use-exwm")))
+
+  (when dw/exwm-enabled
+    (require 'dw-desktop))
+
+#+end_src
+
+*Guix Packages*
+
+Despite the code being in Desktop.org, include the emacs packages for the desktop environment in this file so that they can be included in the Emacs profile.
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-exwm"
+  "emacs-desktop-environment"
+
+#+end_src
+*** Emojis in buffers
+
+#+begin_src emacs-lisp
+
+  (use-package emojify
+    :hook (erc-mode . emojify-mode)
+    :commands emojify-mode)
+
+#+end_src
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+  "emacs-emojify"
+
+#+end_src
+
+
+
+*.config/guix/manifests/emacs.scm:*
+
+#+begin_src scheme :tangle .config/guix/manifests/emacs.scm :noweb yes
+
+  (specifications->manifest
+   '(;;"emacs"
+     "emacs-native-comp"
+     <<packages>>
+  ))
+
+#+end_src
