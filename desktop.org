@@ -349,6 +349,27 @@ The =desktop.scm= manifest holds the list of packages that I use to configure my
 
 #+end_src
 
+* Applications
+
+** Desktop Tools
+
+*Guix Packages*
+
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+
+"compton"
+"redshift"
+"gucharmap"
+"fontmanager"
+"brightnessctl"
+"xdg-utils"      ;; For xdg-open, etc
+"xdg-dbus-proxy" ;; For Flatpak
+"gtk+:bin"       ;; For gtk-launch
+"glib:bin"       ;; For gio-launch-desktop
+"shared-mime-info"
+
+#+end_src
+
 * User Services
 
 I use [[https://www.gnu.org/software/shepherd/][GNU Shepherd]] to manage services that run in the background when I log in.
