@@ -95,12 +95,14 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
 
 #+end_src
 
+=======
+#+TITLE: Emacs Guix Environment
+>>>>>>> 4dd6b21653ba70e112370c498b117e88579b4793
 * Keep .emacs.d Clean
 
 I don't want a bunch of transient files showing up as untracked in the Git repo so I move them all to another location.
 
 #+begin_src emacs-lisp :tangle .emacs.d/init.el
-
   ;; Change the user-emacs-directory to keep unwanted things out of ~/.emacs.d
   (setq user-emacs-directory (expand-file-name "~/.cache/emacs/")
         url-history-file (expand-file-name "url/history" user-emacs-directory))
@@ -167,7 +169,6 @@ Load up the desktop environment if on a machine that supports it and the =--use-
                              (seq-contains command-line-args "--use-exwm")))
 
   (require 'dw-desktop)
-
 #+end_src
 
 *Guix Packages*
@@ -539,6 +540,8 @@ Different platforms need different default font sizes, and [[https://mozilla.git
 
 #+end_src
 
+=======
+>>>>>>> 4dd6b21653ba70e112370c498b117e88579b4793
 *** Emojis in buffers
 
 #+begin_src emacs-lisp

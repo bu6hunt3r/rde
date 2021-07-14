@@ -26,7 +26,9 @@
   #:use-module (gnu packages version-control)
   #:use-module (gnu packages package-management)
   #:use-module (nongnu packages linux)
-  #:use-module (nongnu system linux-initrd))
+  #:use-module (nongnu system linux-initrd)
+  #:use-module (guix channels)
+  #:use-module (guix inferior))
 
 (use-service-modules nix)
 (use-service-modules desktop xorg)
@@ -167,6 +169,8 @@ EndSection
                         stow
                         vim
                         emacs
+                        emacs-exwm
+                        emacs-desktop-environment
                         xterm
                         bluez
                         bluez-alsa

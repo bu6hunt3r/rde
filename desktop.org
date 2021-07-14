@@ -98,168 +98,214 @@ I also have to do an extra step to make sure Emacs can find the font path from t
 "font-awesome"
 "font-google-material-design-icons"
 "gs-fonts"
+"gtk-launch"
 
 "gtk+:bin"
 "make"
 
 #+end_src
+* Panel via Polybar
 
-* Desktop Profile
+I use [[https://github.com/polybar/polybar][Polybar]] to display a panel at the top of the primary screen to display my current EXWM workspace, CPU usage and temperature, battery status, time, and system tray.  It uses some custom hooks back into Emacs via =emacsclient=.
 
-The =desktop.scm= manifest holds the list of packages that I use to configure my desktop environment.  The package names are pulled from the relevant sections titled *Guix Packages* in this file (=Desktop.org=).
+*.config/polybar/config:*
 
-*.config/guix/manifests/desktop.scm:*
+#+begin_src conf :tangle .config/polybar/config :noweb yes
 
-#+begin_src scheme :tangle .config/guix/manifests/desktop.scm :noweb yes
+; Docs: https://github.com/polybar/polybar
+;==========================================================
 
-(specifications->manifest
- '(
-   <<packages>>
-))
+[settings]
+screenchange-reload = true
+
+[global/wm]
+margin-top = 0
+margin-bottom = 0
+
+[colors]
+background = #f0232635
+background-alt = #576075
+foreground = #A6Accd
+foreground-alt = #555
+primary = #ffb52a
+secondary = #e60053
+alert = #bd2c40
+underline-1 = #c792ea
+
+[bar/panel]
+width = 100%
+height = <<system-settings(name="polybar/height")>>
+offset-x = 0
+offset-y = 0
+fixed-center = true
+enable-ipc = true
+
+background = ${colors.background}
+foreground = ${colors.foreground}
+
+line-size = 2
+line-color = #f00
+
+border-size = 0
+border-color = #00000000
+
+padding-top = 5
+padding-left = 1
+padding-right = 1
+
+module-margin = 1
+
+font-0 = "Cantarell:size=<<get-settings(name="polybar/font-0-size")>>:weight=bold;2"
+font-1 = "Font Awesome:size=<<get-settings(name="polybar/font-1-size")>>;2"
+font-2 = "Material Icons:size=<<get-settings(name="polybar/font-2-size")>>;5"
+font-3 = "Fira Mono:size=<<get-settings(name="polybar/font-3-size")>>;-3"
+
+modules-left = exwm exwm-path
+;modules-center = spotify
+;modules-right = telegram mu4e cpu temperature battery date
+
+tray-position = right
+tray-padding = 2
+tray-maxsize = 28
+
+cursor-click = pointer
+cursor-scroll = ns-resize
+
+[module/exwm]
+type = custom/ipc
+hook-0 = emacsclient -e "(dw/polybar-exwm-workspace)" | sed -e 's/^"//' -e 's/"$//'
+initial = 1
+format-underline = ${colors.underline-1}
+format-background = ${colors.background-alt}
+format-padding = 1
+
+[module/exwm-path]
+type = custom/ipc
+hook-0 = emacsclient -e "(dw/polybar-exwm-workspace-path)" | sed -e 's/^"//' -e 's/"$//'
+format-foreground = #f78c6c
+initial = 1
+
+[module/spotify]
+type = custom/script
+exec = ~/.config/polybar/player-status.sh
+interval = 3
+
+[module/mu4e]
+type = custom/ipc
+hook-0 = emacsclient -e '(dw/polybar-mail-count 500)' | sed -e 's/^"//' -e 's/"$//'
+initial = 1
+format-underline = ${colors.underline-1}
+click-left = emacsclient -e '(dw/go-to-inbox)'
+
+[module/telegram]
+type = custom/ipc
+hook-0 = emacsclient -e '(dw/polybar-telegram-chats)' | sed -e 's/^"//' -e 's/"$//'
+format-padding = 3
+initial = 1
+
+[module/xkeyboard]
+type = internal/xkeyboard
+blacklist-0 = num lock
+
+format-prefix-font = 1
+format-prefix-foreground = ${colors.foreground-alt}
+format-prefix-underline = ${colors.underline-1}
+
+label-layout = %layout%
+label-layout-underline = ${colors.underline-1}
+
+label-indicator-padding = 2
+label-indicator-margin = 1
+label-indicator-underline = ${colors.underline-1}
+
+[module/cpu]
+type = internal/cpu
+interval = 2
+format = <label> <ramp-coreload>
+format-underline = ${colors.underline-1}
+click-left = emacsclient -e "(proced)"
+label = %percentage:2%%
+ramp-coreload-spacing = 0
+ramp-coreload-0 = ▁
+ramp-coreload-0-foreground = ${colors.foreground-alt}
+ramp-coreload-1 = ▂
+ramp-coreload-2 = ▃
+ramp-coreload-3 = ▄
+ramp-coreload-4 = ▅
+ramp-coreload-5 = ▆
+ramp-coreload-6 = ▇
+
+[module/memory]
+type = internal/memory
+interval = 2
+format-prefix = "M:"
+format-prefix-foreground = ${colors.foreground-alt}
+format-underline = ${colors.underline-1}
+label = %percentage_used%%
+
+[module/date]
+type = internal/date
+interval = 5
+
+date = "W%U: %a %b %e"
+date-alt = "%A %B %d %Y"
+
+time = %l:%M %p
+time-alt = %H:%M:%S
+
+format-prefix-foreground = ${colors.foreground-alt}
+format-underline = ${colors.underline-1}
+
+label = %date% %time%
+
+[module/battery]
+type = internal/battery
+battery = BAT0
+adapter = ADP1
+full-at = 98
+time-format = %-l:%M
+
+label-charging = %percentage%% / %time%
+format-charging = <animation-charging> <label-charging>
+format-charging-underline = ${colors.underline-1}
+
+label-discharging = %percentage%% / %time%
+format-discharging = <ramp-capacity> <label-discharging>
+format-discharging-underline = ${self.format-charging-underline}
+
+format-full = <ramp-capacity> <label-full>
+format-full-underline = ${self.format-charging-underline}
+
+ramp-capacity-0 = 
+ramp-capacity-1 = 
+ramp-capacity-2 = 
+ramp-capacity-3 = 
+ramp-capacity-4 = 
+
+animation-charging-0 = 
+animation-charging-1 = 
+animation-charging-2 = 
+animation-charging-3 = 
+animation-charging-4 = 
+animation-charging-framerate = 750
+
+[module/temperature]
+type = internal/temperature
+thermal-zone = 0
+warn-temperature = 60
+
+format = <label>
+format-underline = ${colors.underline-1}
+format-warn = <label-warn>
+format-warn-underline = ${self.format-underline}
+
+label = %temperature-c%
+label-warn = %temperature-c%!
+label-warn-foreground = ${colors.secondary}
 
 #+end_src
 
-* Window Management
-
-I use Emacs as the desktop window manager thanks to the excellent EXWM.  This configuration gets loaded relatively early in Emacs startup if running on a Linux machine.
-
-#+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
-
-(use-package exwm
-  :init
-  (setq mouse-autoselect-window nil
-        focus-follows-mouse t
-        exwm-workspace-warp-cursor t
-        exwm-workspace-number 5)
-        ;exwm-workspace-display-echo-area-timeout 5
-        ;exwm-workspace-minibuffer-position 'bottom) ;; Annoying focus issues
-  :config
-  ;; Make class name the buffer name
-  (add-hook 'exwm-update-class-hook
-            (lambda ()
-              (exwm-workspace-rename-buffer exwm-class-name)))
-  (add-hook 'exwm-update-title-hook
-            (lambda ()
-              (pcase exwm-class-name
-                ("Vimb" (exwm-workspace-rename-buffer (format "vimb: %s" exwm-title)))
-                ("qutebrowser" (exwm-workspace-rename-buffer (format "Qutebrowser: %s" exwm-title))))))
-
-  (exwm-enable))
-
-;; Enable exwm-randr before exwm-init gets called
-(use-package exwm-randr
-  :if dw/exwm-enabled
-  :after (exwm)
-  :config
-  (exwm-randr-enable)
-  (setq exwm-randr-workspace-monitor-plist '(4 "DP-2")))
-
-#+end_src
-
-** Helper Functions
-
-#+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
-
-  (defun exwm/run-in-background (command)
-    (let ((command-parts (split-string command "[ ]+")))
-      (apply #'call-process `(,(car command-parts) nil 0 nil ,@(cdr command-parts)))))
-
-  (defun exwm/bind-function (key invocation &rest bindings)
-    "Bind KEYs to FUNCTIONs globally"
-    (while key
-      (exwm-input-set-key (kbd key)
-                          `(lambda ()
-                             (interactive)
-                             (funcall ',invocation)))
-      (setq key (pop bindings)
-            invocation (pop bindings))))
-
-  (defun exwm/bind-command (key command &rest bindings)
-    "Bind KEYs to COMMANDs globally"
-    (while key
-      (exwm-input-set-key (kbd key)
-                          `(lambda ()
-                             (interactive)
-                             (exwm/run-in-background ,command)))
-      (setq key (pop bindings)
-            command (pop bindings))))
-
-#+end_src
-
-** Configuration
-
-#+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
-
-  (defun dw/exwm-init-hook ()
-    (with-eval-after-load 'perspective
-      ;; Set up perspective names on initial workspaces
-      (exwm-workspace-switch-create 0)
-      (persp-switch "Chat")
-
-      (persp-kill "Main")
-      (exwm-workspace-switch-create 1)
-      (exwm-workspace-switch-create 2)
-      (persp-switch "Browsers")
-      (persp-kill "Main")
-      (exwm-workspace-switch-create 3)
-      (persp-switch "Comms")
-      (persp-kill "Main")
-      (exwm-workspace-switch-create 4)
-      (persp-switch "Media")
-      (persp-kill "Main")
-
-      ;; Make workspace 1 be the one where we land at startup
-      (exwm-workspace-switch-create 1)
-
-      ;; Open eshell by default
-      (eshell))
-
-    ;; Launch apps that will run in the background
-    (exwm/run-in-background "dunst")
-    (exwm/run-in-background "nm-applet")
-    (exwm/run-in-background "udiskie -t")
-    (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
-
-  (use-package exwm
-    :if dw/exwm-enabled
-    :config
-
-    (add-hook 'exwm-mode-hook
-              (lambda ()
-                (evil-local-set-key 'motion (kbd "C-u") nil)))
-
-    (defun dw/setup-window-by-class ()
-      (interactive)
-      (pcase exwm-class-name
-        ("Vimb" (exwm-workspace-move-window 2))
-        ("qutebrowser" (exwm-workspace-move-window 2))))
-
-    ;; Do some post-init setup
-    (add-hook 'exwm-init-hook #'dw/exwm-init-hook)
-
-    ;; Manipulate windows as they're created
-    (add-hook 'exwm-manage-finish-hook
-              (lambda ()
-                ;; Send the window where it belongs
-                (dw/setup-window-by-class)))
-
-                ;; Hide the modeline on all X windows
-                ;(exwm-layout-hide-mode-line)))
-
-    ;; Hide the modeline on all X windows
-    (add-hook 'exwm-floating-setup-hook
-              (lambda ()
-                (exwm-layout-hide-mode-line))))
-
-  (use-package exwm-systemtray
-    :disabled
-    :if dw/exwm-enabled
-    :after (exwm)
-    :config
-    (exwm-systemtray-enable)
-    (setq exwm-systemtray-height 35))
-
-#+end_src
+I created a simple script to grab Spotify player information using =playerctl=:
 
 ** Desktop Configuration
 
@@ -311,94 +357,27 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
 #+end_src
 
 ** Keybindings
+=======
+*.config/polybar/player-status.sh:*
+>>>>>>> 4dd6b21653ba70e112370c498b117e88579b4793
 
-#+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
+#+begin_src sh :tangle .config/polybar/player-status.sh :shebang #!/bin/sh
 
-  (when dw/exwm-enabled
-    ;; These keys should always pass through to Emacs
-    (setq exwm-input-prefix-keys
-      '(?\C-x
-        ?\C-h
-        ?\M-x
-        ?\M-`
-        ?\M-&
-        ?\M-:
-        ?\C-\M-j  ;; Buffer list
-        ?\C-\M-k  ;; Browser list
-        ?\C-\M-n  ;; Next workspace
-        ?\C-\     ;; Ctrl+Space
-        ?\C-\;))
-
-    ;; Ctrl+Q will enable the next key to be sent directly
-    (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
-
-    (defun exwm/run-vimb ()
-      (exwm/run-in-background "vimb")
-      (exwm-workspace-switch-create 2))
-
-    (defun exwm/run-qute ()
-      (exwm/run-in-background "qutebrowser")
-      (exwm-workspace-switch-create 2))
-
-    (exwm/bind-function
-      "s-o" 'exwm/run-qute
-      "s-q" 'kill-buffer)
-
-    (exwm/bind-command
-      "s-p" "playerctl play-pause"
-      "s-[" "playerctl previous"
-      "s-]" "playerctl next")
-
-    (use-package desktop-environment
-      :after exwm
-      :config (desktop-environment-mode)
-      :custom
-      (desktop-environment-brightness-small-increment "2%+")
-      (desktop-environment-brightness-small-decrement "2%-")
-      (desktop-environment-brightness-normal-increment "5%+")
-      (desktop-environment-brightness-normal-decrement "5%-")
-      (desktop-environment-screenshot-command "flameshot gui"))
-
-    ;; This needs a more elegant ASCII banner
-    (defhydra hydra-exwm-move-resize (:timeout 4)
-      "Move/Resize Window (Shift is bigger steps, Ctrl moves window)"
-      ("j" (lambda () (interactive) (exwm-layout-enlarge-window 10)) "V 10")
-      ("J" (lambda () (interactive) (exwm-layout-enlarge-window 30)) "V 30")
-      ("k" (lambda () (interactive) (exwm-layout-shrink-window 10)) "^ 10")
-      ("K" (lambda () (interactive) (exwm-layout-shrink-window 30)) "^ 30")
-      ("h" (lambda () (interactive) (exwm-layout-shrink-window-horizontally 10)) "< 10")
-      ("H" (lambda () (interactive) (exwm-layout-shrink-window-horizontally 30)) "< 30")
-      ("l" (lambda () (interactive) (exwm-layout-enlarge-window-horizontally 10)) "> 10")
-      ("L" (lambda () (interactive) (exwm-layout-enlarge-window-horizontally 30)) "> 30")
-      ("C-j" (lambda () (interactive) (exwm-floating-move 0 10)) "V 10")
-      ("C-S-j" (lambda () (interactive) (exwm-floating-move 0 30)) "V 30")
-      ("C-k" (lambda () (interactive) (exwm-floating-move 0 -10)) "^ 10")
-      ("C-S-k" (lambda () (interactive) (exwm-floating-move 0 -30)) "^ 30")
-      ("C-h" (lambda () (interactive) (exwm-floating-move -10 0)) "< 10")
-      ("C-S-h" (lambda () (interactive) (exwm-floating-move -30 0)) "< 30")
-      ("C-l" (lambda () (interactive) (exwm-floating-move 10 0)) "> 10")
-      ("C-S-l" (lambda () (interactive) (exwm-floating-move 30 0)) "> 30")
-      ("f" nil "finished" :exit t))
-
-    ;; Workspace switching
-    (setq exwm-input-global-keys
-           `(([?\s-\C-r] . exwm-reset)
-             ([?\s-w] . exwm-workspace-switch)
-             ([?\s-r] . hydra-exwm-move-resize/body)
-             ([?\s-e] . dired-jump)
-             ([?\s-E] . (lambda () (interactive) (dired "~")))
-             ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
-             ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
-             ,@(mapcar (lambda (i)
-                         `(,(kbd (format "s-%d" i)) .
-                            (lambda ()
-                             (interactive)
-                             (exwm-workspace-switch-create ,i))))
-                        (number-sequence 0 9))))
-
-    (exwm-input-set-key (kbd "<s-return>") 'vterm)
-    (exwm-input-set-key (kbd "s-SPC") 'app-launcher-run-app)
-    (exwm-input-set-key (kbd "s-f") 'exwm-layout-toggle-fullscreen))
+status="$(playerctl -p spotify status 2>&1)"
+if [ "$status" != "No players found" ]
+then
+  artist="$(playerctl -p spotify metadata artist)"
+  if [ "$artist" != "" ]
+  then
+    echo " $(playerctl -p spotify metadata artist) - $(playerctl -p spotify metadata title)"
+  else
+    # Clear any string that was previously displayed
+    echo ""
+  fi
+else
+  # Clear any string that was previously displayed
+  echo ""
+fi
 
 #+end_src
 
@@ -689,260 +668,22 @@ else
   echo ""
 fi
 
-#+end_src
+* Desktop Profile
 
-*Guix Packages*
+The =desktop.scm= manifest holds the list of packages that I use to configure my desktop environment.  The package names are pulled from the relevant sections titled *Guix Packages* in this file (=Desktop.org=).
 
-#+begin_src scheme :noweb-ref packages :noweb-sep ""
+*.config/guix/manifests/desktop.scm:*
 
-"polybar"
+#+begin_src scheme :tangle .config/guix/manifests/desktop.scm :noweb yes
+
+(specifications->manifest
+ '(
+   <<packages>>
+))
 
 #+end_src
 
 * Applications
-** Browsers
-
-*Guix Packages*
-
-#+begin_src scheme :noweb-ref packages :noweb-sep ""
-
-"vimb"
-"qutebrowser"
-
-#+end_src
-
-*** Qutebrowser
-
-[[https://github.com/qutebrowser/qutebrowser][Qutebrowser]] is a great keyboard-centric browser which uses the Chromium rendering engine via QT 5's WebEngine component.  I've configured it to act more like Vimb for window-per-tab behavior that integrates well into Emacs.  One thing I like about this browser is that it does a much better job of remembering what windows you had open when it exits so that you can maintain your session more easily.  I also like that when you reopen a tab/window, the history of that window is still present.
-
-#+begin_src python :tangle .config/qutebrowser/config.py :noweb yes
-
-  # Open every tab as a new window, Vimb style
-  c.tabs.tabs_are_windows = True
-  c.tabs.show = "multiple"
-  c.tabs.last_close = "close"
-
-  c.auto_save.session = True
-  c.scrolling.smooth = True
-  c.session.lazy_restore = True
-  c.content.autoplay = False
-
-  # Scale pages and UI better for hidpi
-  c.zoom.default = "<<get-setting(name="qutebrowser/default-zoom")>>%"
-  c.fonts.hints = "bold 20pt monospace"
-
-  # Better default fonts
-  c.fonts.web.family.standard = "Bitstream Vera Sans"
-  c.fonts.web.family.serif = "Bitstream Vera Serif"
-  c.fonts.web.family.sans_serif = "Bitstream Vera Sans"
-  c.fonts.web.family.fixed = "Fira Mono"
-  c.fonts.statusbar = "18pt Cantarell"
-
-  # Use dark mode where possible
-  c.colors.webpage.darkmode.enabled = True
-  c.colors.webpage.darkmode.policy.images = "never"
-  c.colors.webpage.bg = "black"
-
-  # Automatically turn on insert mode when a loaded page focuses a text field
-  c.input.insert_mode.auto_load = True
-
-  # Edit fields in Emacs with Ctrl+E
-  c.editor.command = ["emacsclient", "+{line}:{column}", "{file}"]
-
-  # Make Ctrl+g quit everything like in Emacs
-  config.bind('<Ctrl-g>', 'leave-mode', mode='insert')
-  config.bind('<Ctrl-g>', 'leave-mode', mode='command')
-  config.bind('<Ctrl-g>', 'leave-mode', mode='prompt')
-  config.bind('<Ctrl-g>', 'leave-mode', mode='hint')
-  config.bind('v', 'spawn ~/.dotfiles/bin/umpv {url}')
-  config.bind('V', 'hint links spawn ~/.dotfiles/bin/umpv {hint-url}')
-
-  # Tweak some keybindings
-  config.unbind('d') # Don't close window on lower-case 'd'
-  config.bind('yy', 'yank')
-
-  # Vim-style movement keys in command mode
-  config.bind('<Ctrl-j>', 'completion-item-focus --history next', mode='command')
-  config.bind('<Ctrl-k>', 'completion-item-focus --history prev', mode='command')
-
-  # More binding hints here: https://gitlab.com/Kaligule/qutebrowser-emacs-config/blob/master/config.py
-
-  # Load the autoconfig file (quteconfig.py)
-  config.load_autoconfig()
-
-#+end_src
-
-#+begin_src conf :tangle .config/qutebrowser/quickmarks
-
-1p https://my.1password.com/vaults/kyxq62du37adb3lpjh2sphdq4i/allitems/tkr5tuo4gqyuco4x25upt6iaia
-gn https://github.com/notifications
-dot https://github.com/daviwil/dotfiles
-efs https://github.com/daviwil/emacs-from-scratch
-sc https://github.com/SystemCrafters
-scv https://github.com/SystemCrafters/video-planning
-ddg https://duckduckgo.com/?q $0
-gh https://github.com/$0
-gm https://www.iro.umontreal.ca/~gambit/doc/gambit.html
-gam https://github.com/gambit/gambit
-zig https://github.com/ziglang/zig
-zigd https://ziglang.org/documentation/master/
-zigl https://ziglang.org/documentation/master/std
-sub https://github.com/substratic/
-sube https://github.com/substratic/engine
-subb https://github.com/substratic/build
-subf https://github.com/substratic/forge
-subc https://github.com/substratic/crash-the-stack
-tspl https://scheme.com/tspl4/
-mail https://fastmail.com
-cups http://localhost:631
-az https://portal.azure.com
-azdo https://dev.azure.com/azure-sdk/
-ajs https://github.com/Azure/azure-sdk-for-js
-adl https://github.com/Azure/adl
-dajs https://github.com/daviwil/azure-sdk-for-js
-anet https://github.com/Azure/azure-sdk-for-net
-aja https://github.com/Azure/azure-sdk-for-java
-apy https://github.com/Azure/azure-sdk-for-python
-ats https://github.com/Azure/autorest.typescript
-ats3 https://github.com/Azure/autorest.typescript.v3
-atest https://github.com/Azure/autorest.testserver
-amf https://github.com/Azure/autorest.modelerfour
-ar https://github.com/Azure/autorest
-arpy https://github.com/Azure/autorest.python
-arc https://github.com/Azure/autorest.csharp
-are https://github.com/Azure/autorest/tree/master/docs/extensions
-arp https://github.com/orgs/Azure/projects/48
-ac https://github.com/Azure/autorest.compare
-ap https://github.com/Azure/perks
-specs https://github.com/Azure/azure-rest-api-specs
-oai2 https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
-oai3 https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md
-npm https://www.npmjs.com/search?q $0
-oms https://outlook.com/microsoft.com
-msw https://microsoft.sharepoint.com
-
-#+end_src
-
-*** vimb
-
-I used [[https://fanglingsu.github.io/vimb/][Vimb]] for a while because the latest Qutebrowser wasn't available in Guix's package repository, but since that problem has since been solved I've switched back to Qutebrowser as primary.  Keeping this configuration around in case I need it again.
-
-#+begin_src conf :tangle .config/vimb/config :noweb yes
-
-# Set the home page to a local file
-set home-page=file:///home/daviwil/.config/vimb/home.html
-
-# Use home-row keys for hints
-set hint-keys=asdfg;lkjh
-set hint-match-element=false
-set hint-keys-same-length=true
-set hint-timeout=0
-
-# Enable smooth scrolling
-set smooth-scrolling=true
-
-# Fake a Chromium User-Agent header
-#set user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36
-set user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36
-
-# Set download directory
-set download-path=~/Downloads
-
-# If enabled the inputbox will be hidden whenever it contains no text
-set input-autohide=true
-
-# Set the default zoom
-set default-zoom=<<get-setting(name="vimb/default-zoom")>>
-
-# Hint sites to use dark themes
-set dark-mode=on
-
-# Use Emacs as the external editor
-set editor-command=emacsclient
-
-# Enable support for WebGL
-set webgl=true
-
-# While typing a search command, show where the pattern typed so far matches.
-set incsearch=true
-
-# Enable developer tools (binding is gF)
-set webinspector=true
-
-# Turn off dark mode on some sites
-au LoadCommitted https://outlook.office.com/* set dark-mode=off
-
-# Keybindings
-# - 'e' edits URL in current window
-# - 'E' edits URL in new window
-# - 'O' opens URL in new window
-# - 'H' navigates back
-# - 'L' navigates forward
-# - 'D' closes the window
-# - 'C-g' exits command and input mode
-# - 'C-j' and 'C-k' move down and up command selections
-nn e O
-nn E T
-nm O :tabopen<Space>
-nn H <C-O>
-nn L <C-I>
-nm D :q<CR>
-ino <C-G> <Esc>
-cno <C-J> <Tab>
-cno <C-K> <S-Tab>
-
-# Zoom keys
-nmap + zI
-nmap - zO
-nmap = zz
-
-# Shortcuts
-shortcut-add gn=https://github.com/notifications
-shortcut-add dot=https://github.com/daviwil/dotfiles
-shortcut-add ddg=https://duckduckgo.com/?q=$0
-shortcut-add gh=https://github.com/$0
-shortcut-add gm=https://www.iro.umontreal.ca/~gambit/doc/gambit.html
-shortcut-add gam=https://github.com/gambit/gambit
-shortcut-add zig=https://github.com/ziglang/zig
-shortcut-add zigd=https://ziglang.org/documentation/master/
-shortcut-add zigl=https://ziglang.org/documentation/master/std
-shortcut-add sub=https://github.com/substratic/
-shortcut-add sube=https://github.com/substratic/engine
-shortcut-add subb=https://github.com/substratic/build
-shortcut-add subf=https://github.com/substratic/forge
-shortcut-add subc=https://github.com/substratic/crash-the-stack
-shortcut-add tspl=https://scheme.com/tspl4/
-shortcut-add mail=https://fastmail.com
-shortcut-add cups=http://localhost:631
-shortcut-add az=https://portal.azure.com
-shortcut-add azdo=https://dev.azure.com/azure-sdk/
-shortcut-add ajs=https://github.com/Azure/azure-sdk-for-js
-shortcut-add dajs=https://github.com/daviwil/azure-sdk-for-js
-shortcut-add anet=https://github.com/Azure/azure-sdk-for-net
-shortcut-add aja=https://github.com/Azure/azure-sdk-for-java
-shortcut-add apy=https://github.com/Azure/azure-sdk-for-python
-shortcut-add ats=https://github.com/Azure/autorest.typescript
-shortcut-add ats3=https://github.com/Azure/autorest.typescript.v3
-shortcut-add atest=https://github.com/Azure/autorest.testserver
-shortcut-add amf=https://github.com/Azure/autorest.modelerfour
-shortcut-add ar=https://github.com/Azure/autorest
-shortcut-add arpy=https://github.com/Azure/autorest.python
-shortcut-add arc=https://github.com/Azure/autorest.csharp
-shortcut-add are=https://github.com/Azure/autorest/tree/master/docs/extensions
-shortcut-add arp=https://github.com/orgs/Azure/projects/48
-shortcut-add ac=https://github.com/Azure/autorest.compare
-shortcut-add ap=https://github.com/Azure/perks
-shortcut-add specs=https://github.com/Azure/azure-rest-api-specs
-shortcut-add oai2=https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md
-shortcut-add oai3=https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md
-shortcut-add npm=https://www.npmjs.com/search?q=$0
-shortcut-add oms=https://outlook.com/microsoft.com
-shortcut-add msw=https://microsoft.sharepoint.com
-shortcut-add man=https://fanglingsu.github.io/vimb/man.html
-
-# A newline is needed at EOF because each line is executed like a command as if the user typed it and pressed Enter.
-
-#+end_src
 
 ** Desktop Tools
 
@@ -963,35 +704,38 @@ shortcut-add man=https://fanglingsu.github.io/vimb/man.html
 
 #+end_src
 
-** System Tools
+* User Services
 
-*Guix Packages*
+I use [[https://www.gnu.org/software/shepherd/][GNU Shepherd]] to manage services that run in the background when I log in.
 
-#+begin_src scheme :noweb-ref packages :noweb-sep ""
+#+begin_src scheme :tangle .config/shepherd/init.scm
 
-"openssh"
-"zip"
-"unzip"
+(define gpg-agent
+  (make <service>
+    #:provides '(gpg-agent)
+    #:respawn? #t
+    #:start (make-system-constructor "gpg-connect-agent /bye")
+    #:stop (make-system-destructor "gpgconf --kill gpg-agent")))
 
-#+end_src
+(define mcron
+  (make <service>
+    #:provides '(mcron)
+    #:respawn? #t
+    #:start (make-forkexec-constructor '("mcron"))
+    #:stop  (make-kill-destructor)))
 
-** Xorg Tools
+(define pulseaudio
+  (make <service>
+    #:provides '(pulseaudio)
+    #:respawn? #t
+    #:start (make-forkexec-constructor '("pulseaudio"))
+    #:stop  (make-kill-destructor)))
 
-*Guix Packages*
+(register-services gpg-agent mcron syncthing pulseaudio)
+(action 'shepherd 'daemonize)
 
-#+begin_src scheme :noweb-ref packages :noweb-sep ""
-
-"xev"
-"xset"
-"xrdb"
-"xhost"
-"xmodmap"
-"setxkbmap"
-"xrandr"
-"arandr"
-"xss-lock"
-"libinput"
-"xinput"
+;; Start user services
+(for-each start '(gpg-agent mcron syncthing pulseaudio))
 
 #+end_src
 

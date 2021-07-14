@@ -301,3 +301,4 @@
 (add-hook 'bufler-workspace-set-hook #'dw/update-polybar-exwm)
 
 (provide 'dw-desktop)
+
