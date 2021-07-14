@@ -25,114 +25,100 @@
   :after (exwm)
   :config
   (exwm-randr-enable)
-  (setq exwm-randr-workspace-monitor-plist '(4 "eDP-1")))
+  (setq exwm-randr-workspace-monitor-plist '(4 "DP-2")))
 
-  (defun exwm/run-in-background (command)
-    (let ((command-parts (split-string command "[ ]+")))
-      (apply #'call-process `(,(car command-parts) nil 0 nil ,@(cdr command-parts)))))
+(defun exwm/run-in-background (command)
+  (let ((command-parts (split-string command "[ ]+")))
+    (apply #'call-process `(,(car command-parts) nil 0 nil ,@(cdr command-parts)))))
 
-  (defun exwm/bind-function (key invocation &rest bindings)
-    "Bind KEYs to FUNCTIONs globally"
-    (while key
-      (exwm-input-set-key (kbd key)
-                          `(lambda ()
-                             (interactive)
-                             (funcall ',invocation)))
-      (setq key (pop bindings)
-            invocation (pop bindings))))
+(defun exwm/bind-function (key invocation &rest bindings)
+  "Bind KEYs to FUNCTIONs globally"
+  (while key
+    (exwm-input-set-key (kbd key)
+                        `(lambda ()
+                           (interactive)
+                           (funcall ',invocation)))
+    (setq key (pop bindings)
+          invocation (pop bindings))))
 
-  (defun exwm/bind-command (key command &rest bindings)
-    "Bind KEYs to COMMANDs globally"
-    (while key
-      (exwm-input-set-key (kbd key)
-                          `(lambda ()
-                             (interactive)
-                             (exwm/run-in-background ,command)))
-      (setq key (pop bindings)
-            command (pop bindings))))
+(defun exwm/bind-command (key command &rest bindings)
+  "Bind KEYs to COMMANDs globally"
+  (while key
+    (exwm-input-set-key (kbd key)
+                        `(lambda ()
+                           (interactive)
+                           (exwm/run-in-background ,command)))
+    (setq key (pop bindings)
+          command (pop bindings))))
 
-  (defun dw/exwm-init-hook ()
-    (with-eval-after-load 'perspective
-      ;; Set up perspective names on initial workspaces
-      (exwm-workspace-switch-create 0)
-      (persp-switch "Chat")
+(defun dw/exwm-init-hook ()
+  (with-eval-after-load 'perspective
+    ;; Set up perspective names on initial workspaces
+    (exwm-workspace-switch-create 0)
+    (persp-switch "Chat")
 
-      ;; Launch Telega in workspace 0 if we've logged in before
-      (when (file-exists-p "~/.telega/db.sqlite")
-        (telega nil))
+    (persp-kill "Main")
+    (exwm-workspace-switch-create 1)
+    (exwm-workspace-switch-create 2)
+    (persp-switch "Browsers")
+    (persp-kill "Main")
+    (exwm-workspace-switch-create 3)
+    (persp-switch "Comms")
+    (persp-kill "Main")
+    (exwm-workspace-switch-create 4)
+    (persp-switch "Media")
+    (persp-kill "Main")
 
-      (persp-kill "Main")
-      (exwm-workspace-switch-create 1)
-      (exwm-workspace-switch-create 2)
-      (persp-switch "Browsers")
-      (persp-kill "Main")
-      (exwm-workspace-switch-create 3)
-      (persp-switch "Comms")
-      (persp-kill "Main")
-      (exwm-workspace-switch-create 4)
-      (persp-switch "Media")
-      (persp-kill "Main")
+    ;; Make workspace 1 be the one where we land at startup
+    (exwm-workspace-switch-create 1)
 
-      ;; Make workspace 1 be the one where we land at startup
-      (exwm-workspace-switch-create 1)
+    ;; Open eshell by default
+    (eshell))
 
-      ;; Open eshell by default
-      (eshell))
+  ;; Launch apps that will run in the background
+  (exwm/run-in-background "dunst")
+  (exwm/run-in-background "nm-applet")
+  (exwm/run-in-background "udiskie -t")
+  (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
 
-    ;; Launch apps that will run in the background
-    (exwm/run-in-background "dunst")
-    (exwm/run-in-background "nm-applet")
-    (exwm/run-in-background "syncthing-gtk --minimized")
-    (exwm/run-in-background "udiskie -t")
-    (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
+(use-package exwm
+  :if dw/exwm-enabled
+  :config
 
-  (use-package exwm
-    :if dw/exwm-enabled
-    :config
+  (add-hook 'exwm-mode-hook
+            (lambda ()
+              (evil-local-set-key 'motion (kbd "C-u") nil)))
 
-    (add-hook 'exwm-mode-hook
-              (lambda ()
-                (evil-local-set-key 'motion (kbd "C-u") nil)))
+  (defun dw/setup-window-by-class ()
+    (interactive)
+    (pcase exwm-class-name
+      ("Vimb" (exwm-workspace-move-window 2))
+      ("qutebrowser" (exwm-workspace-move-window 2))))
 
-    (defun dw/setup-window-by-class ()
-      (interactive)
-      (pcase exwm-class-name
-        ("Pidgin" (exwm-workspace-move-window 0))
-        ("Pidgin<2>" (exwm-workspace-move-window 0))
-        ("discord" (exwm-workspace-move-window 3))
-        ("Microsoft Teams - Preview" (exwm-workspace-move-window 3))
-        ("Spotify" (exwm-workspace-move-window 4))
-        ("Vimb" (exwm-workspace-move-window 2))
-        ("qutebrowser" (exwm-workspace-move-window 2))
-        ("qjackctl" (exwm-floating-toggle-floating))
-        ("mpv" (exwm-floating-toggle-floating)
-               (dw/exwm-floating-toggle-pinned))
-        ("gsi" (exwm-input-toggle-keyboard))))
+  ;; Do some post-init setup
+  (add-hook 'exwm-init-hook #'dw/exwm-init-hook)
 
-    ;; Do some post-init setup
-    (add-hook 'exwm-init-hook #'dw/exwm-init-hook)
+  ;; Manipulate windows as they're created
+  (add-hook 'exwm-manage-finish-hook
+            (lambda ()
+              ;; Send the window where it belongs
+              (dw/setup-window-by-class)))
 
-    ;; Manipulate windows as they're created
-    (add-hook 'exwm-manage-finish-hook
-              (lambda ()
-                ;; Send the window where it belongs
-                (dw/setup-window-by-class)))
+              ;; Hide the modeline on all X windows
+              ;(exwm-layout-hide-mode-line)))
 
-                ;; Hide the modeline on all X windows
-                ;(exwm-layout-hide-mode-line)))
+  ;; Hide the modeline on all X windows
+  (add-hook 'exwm-floating-setup-hook
+            (lambda ()
+              (exwm-layout-hide-mode-line))))
 
-    ;; Hide the modeline on all X windows
-    (add-hook 'exwm-floating-setup-hook
-              (lambda ()
-                (exwm-layout-hide-mode-line))))
-
-  (use-package exwm-systemtray
-    :disabled
-    :if dw/exwm-enabled
-    :after (exwm)
-    :config
-    (exwm-systemtray-enable)
-    (setq exwm-systemtray-height 35))
+(use-package exwm-systemtray
+  :disabled
+  :if dw/exwm-enabled
+  :after (exwm)
+  :config
+  (exwm-systemtray-enable)
+  (setq exwm-systemtray-height 35))
 
 (defun dw/run-xmodmap ()
   (interactive)
@@ -176,6 +162,92 @@
 (when dw/exwm-enabled
   ;; Configure the desktop for first load
   (add-hook 'exwm-init-hook #'dw/on-exwm-init))
+
+(when dw/exwm-enabled
+  ;; These keys should always pass through to Emacs
+  (setq exwm-input-prefix-keys
+    '(?\C-x
+      ?\C-h
+      ?\M-x
+      ?\M-`
+      ?\M-&
+      ?\M-:
+      ?\C-\M-j  ;; Buffer list
+      ?\C-\M-k  ;; Browser list
+      ?\C-\M-n  ;; Next workspace
+      ?\C-\     ;; Ctrl+Space
+      ?\C-\;))
+
+  ;; Ctrl+Q will enable the next key to be sent directly
+  (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
+
+  (defun exwm/run-vimb ()
+    (exwm/run-in-background "vimb")
+    (exwm-workspace-switch-create 2))
+
+  (defun exwm/run-qute ()
+    (exwm/run-in-background "qutebrowser")
+    (exwm-workspace-switch-create 2))
+
+  (exwm/bind-function
+    "s-o" 'exwm/run-qute
+    "s-q" 'kill-buffer)
+
+  (exwm/bind-command
+    "s-p" "playerctl play-pause"
+    "s-[" "playerctl previous"
+    "s-]" "playerctl next")
+
+  (use-package desktop-environment
+    :after exwm
+    :config (desktop-environment-mode)
+    :custom
+    (desktop-environment-brightness-small-increment "2%+")
+    (desktop-environment-brightness-small-decrement "2%-")
+    (desktop-environment-brightness-normal-increment "5%+")
+    (desktop-environment-brightness-normal-decrement "5%-")
+    (desktop-environment-screenshot-command "flameshot gui"))
+
+  ;; This needs a more elegant ASCII banner
+  (defhydra hydra-exwm-move-resize (:timeout 4)
+    "Move/Resize Window (Shift is bigger steps, Ctrl moves window)"
+    ("j" (lambda () (interactive) (exwm-layout-enlarge-window 10)) "V 10")
+    ("J" (lambda () (interactive) (exwm-layout-enlarge-window 30)) "V 30")
+    ("k" (lambda () (interactive) (exwm-layout-shrink-window 10)) "^ 10")
+    ("K" (lambda () (interactive) (exwm-layout-shrink-window 30)) "^ 30")
+    ("h" (lambda () (interactive) (exwm-layout-shrink-window-horizontally 10)) "< 10")
+    ("H" (lambda () (interactive) (exwm-layout-shrink-window-horizontally 30)) "< 30")
+    ("l" (lambda () (interactive) (exwm-layout-enlarge-window-horizontally 10)) "> 10")
+    ("L" (lambda () (interactive) (exwm-layout-enlarge-window-horizontally 30)) "> 30")
+    ("C-j" (lambda () (interactive) (exwm-floating-move 0 10)) "V 10")
+    ("C-S-j" (lambda () (interactive) (exwm-floating-move 0 30)) "V 30")
+    ("C-k" (lambda () (interactive) (exwm-floating-move 0 -10)) "^ 10")
+    ("C-S-k" (lambda () (interactive) (exwm-floating-move 0 -30)) "^ 30")
+    ("C-h" (lambda () (interactive) (exwm-floating-move -10 0)) "< 10")
+    ("C-S-h" (lambda () (interactive) (exwm-floating-move -30 0)) "< 30")
+    ("C-l" (lambda () (interactive) (exwm-floating-move 10 0)) "> 10")
+    ("C-S-l" (lambda () (interactive) (exwm-floating-move 30 0)) "> 30")
+    ("f" nil "finished" :exit t))
+
+  ;; Workspace switching
+  (setq exwm-input-global-keys
+         `(([?\s-\C-r] . exwm-reset)
+           ([?\s-w] . exwm-workspace-switch)
+           ([?\s-r] . hydra-exwm-move-resize/body)
+           ([?\s-e] . dired-jump)
+           ([?\s-E] . (lambda () (interactive) (dired "~")))
+           ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
+           ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
+           ,@(mapcar (lambda (i)
+                       `(,(kbd (format "s-%d" i)) .
+                          (lambda ()
+                           (interactive)
+                           (exwm-workspace-switch-create ,i))))
+                      (number-sequence 0 9))))
+
+  (exwm-input-set-key (kbd "<s-return>") 'vterm)
+  (exwm-input-set-key (kbd "s-SPC") 'app-launcher-run-app)
+  (exwm-input-set-key (kbd "s-f") 'exwm-layout-toggle-fullscreen))
 
 (defun dw/send-polybar-hook (name number)
   (start-process-shell-command "polybar-msg" nil (format "polybar-msg hook %s %s" name number)))
@@ -228,90 +300,4 @@
 (add-hook 'exwm-workspace-switch-hook #'dw/update-polybar-exwm)
 (add-hook 'bufler-workspace-set-hook #'dw/update-polybar-exwm)
 
-  (when dw/exwm-enabled
-    ;; These keys should always pass through to Emacs
-    (setq exwm-input-prefix-keys
-      '(?\C-x
-        ?\C-h
-        ?\M-x
-        ?\M-`
-        ?\M-&
-        ?\M-:
-        ?\C-\M-j  ;; Buffer list
-        ?\C-\M-k  ;; Browser list
-        ?\C-\M-n  ;; Next workspace
-        ?\C-\     ;; Ctrl+Space
-        ?\C-\;))
-
-    ;; Ctrl+Q will enable the next key to be sent directly
-    (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
-
-    (defun exwm/run-vimb ()
-      (exwm/run-in-background "vimb")
-      (exwm-workspace-switch-create 2))
-
-    (defun exwm/run-qute ()
-      (exwm/run-in-background "qutebrowser")
-      (exwm-workspace-switch-create 2))
-
-    (exwm/bind-function
-      "s-o" 'exwm/run-qute
-      "s-q" 'kill-buffer)
-
-    (exwm/bind-command
-      "s-p" "playerctl play-pause"
-      "s-[" "playerctl previous"
-      "s-]" "playerctl next")
-
-    (use-package desktop-environment
-      :after exwm
-      :config (desktop-environment-mode)
-      :custom
-      (desktop-environment-brightness-small-increment "2%+")
-      (desktop-environment-brightness-small-decrement "2%-")
-      (desktop-environment-brightness-normal-increment "5%+")
-      (desktop-environment-brightness-normal-decrement "5%-")
-      (desktop-environment-screenshot-command "flameshot gui"))
-
-    ;; This needs a more elegant ASCII banner
-    (defhydra hydra-exwm-move-resize (:timeout 4)
-      "Move/Resize Window (Shift is bigger steps, Ctrl moves window)"
-      ("j" (lambda () (interactive) (exwm-layout-enlarge-window 10)) "V 10")
-      ("J" (lambda () (interactive) (exwm-layout-enlarge-window 30)) "V 30")
-      ("k" (lambda () (interactive) (exwm-layout-shrink-window 10)) "^ 10")
-      ("K" (lambda () (interactive) (exwm-layout-shrink-window 30)) "^ 30")
-      ("h" (lambda () (interactive) (exwm-layout-shrink-window-horizontally 10)) "< 10")
-      ("H" (lambda () (interactive) (exwm-layout-shrink-window-horizontally 30)) "< 30")
-      ("l" (lambda () (interactive) (exwm-layout-enlarge-window-horizontally 10)) "> 10")
-      ("L" (lambda () (interactive) (exwm-layout-enlarge-window-horizontally 30)) "> 30")
-      ("C-j" (lambda () (interactive) (exwm-floating-move 0 10)) "V 10")
-      ("C-S-j" (lambda () (interactive) (exwm-floating-move 0 30)) "V 30")
-      ("C-k" (lambda () (interactive) (exwm-floating-move 0 -10)) "^ 10")
-      ("C-S-k" (lambda () (interactive) (exwm-floating-move 0 -30)) "^ 30")
-      ("C-h" (lambda () (interactive) (exwm-floating-move -10 0)) "< 10")
-      ("C-S-h" (lambda () (interactive) (exwm-floating-move -30 0)) "< 30")
-      ("C-l" (lambda () (interactive) (exwm-floating-move 10 0)) "> 10")
-      ("C-S-l" (lambda () (interactive) (exwm-floating-move 30 0)) "> 30")
-      ("f" nil "finished" :exit t))
-
-    ;; Workspace switching
-    (setq exwm-input-global-keys
-           `(([?\s-\C-r] . exwm-reset)
-             ([?\s-w] . exwm-workspace-switch)
-             ([?\s-r] . hydra-exwm-move-resize/body)
-             ([?\s-e] . dired-jump)
-             ([?\s-E] . (lambda () (interactive) (dired "~")))
-             ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
-             ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
-             ,@(mapcar (lambda (i)
-                         `(,(kbd (format "s-%d" i)) .
-                            (lambda ()
-                             (interactive)
-                             (exwm-workspace-switch-create ,i))))
-                        (number-sequence 0 9))))
-
-    (exwm-input-set-key (kbd "<s-return>") 'vterm)
-    (exwm-input-set-key (kbd "s-SPC") 'app-launcher-run-app)
-    (exwm-input-set-key (kbd "s-f") 'exwm-layout-toggle-fullscreen))
-
-  (provide 'dw-desktop)
+(provide 'dw-desktop)
