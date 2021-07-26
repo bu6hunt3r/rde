@@ -1,31 +1,30 @@
 (use-package exwm
   :init
   (setq mouse-autoselect-window nil
-        focus-follows-mouse t
-        exwm-workspace-warp-cursor t
-        exwm-workspace-number 5)
-        ;exwm-workspace-display-echo-area-timeout 5
-        ;exwm-workspace-minibuffer-position 'bottom) ;; Annoying focus issues
+	focus-follows-mouse t
+	exwm-workspace-warp-cursor t
+	exwm-workspace-number 5)
+	;exwm-workspace-display-echo-area-timeout 5
+	;exwm-workspace-minibuffer-position 'bottom) ;; Annoying focus issues
   :config
   ;; Make class name the buffer name
   (add-hook 'exwm-update-class-hook
-            (lambda ()
-              (exwm-workspace-rename-buffer exwm-class-name)))
+	    (lambda ()
+	      (exwm-workspace-rename-buffer exwm-class-name)))
   (add-hook 'exwm-update-title-hook
-            (lambda ()
-              (pcase exwm-class-name
-                ("Vimb" (exwm-workspace-rename-buffer (format "vimb: %s" exwm-title)))
-                ("qutebrowser" (exwm-workspace-rename-buffer (format "Qutebrowser: %s" exwm-title))))))
+	    (lambda ()
+	      (pcase exwm-class-name
+		("Vimb" (exwm-workspace-rename-buffer (format "vimb: %s" exwm-title)))
+		("qutebrowser" (exwm-workspace-rename-buffer (format "Qutebrowser: %s" exwm-title))))))
 
   (exwm-enable))
-
-;; Enable exwm-randr before exwm-init gets called
-(use-package exwm-randr
-  :if dw/exwm-enabled
-  :after (exwm)
-  :config
-  (exwm-randr-enable)
-  (setq exwm-randr-workspace-monitor-plist '(4 "DP-2")))
+  ;; Enable exwm-randr before exwm-init gets called
+  (use-package exwm-randr
+    :if dw/exwm-enabled
+    :after (exwm)
+    :config
+    (exwm-randr-enable)
+    (setq exwm-randr-workspace-monitor-plist '(4 "DP-2")))
 
 (defun exwm/run-in-background (command)
   (let ((command-parts (split-string command "[ ]+")))
@@ -57,6 +56,10 @@
     (exwm-workspace-switch-create 0)
     (persp-switch "Chat")
 
+    ;; Launch Telega in workspace 0 if we've logged in before
+    ;;(when (file-exists-p "~/.telega/db.sqlite")
+    ;;  (telega nil))
+
     (persp-kill "Main")
     (exwm-workspace-switch-create 1)
     (exwm-workspace-switch-create 2)
@@ -76,45 +79,51 @@
     (eshell))
 
   ;; Launch apps that will run in the background
-  (exwm/run-in-background "dunst")
-  (exwm/run-in-background "nm-applet")
-  (exwm/run-in-background "udiskie -t")
-  (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
+    (exwm/run-in-background "dunst")
+    (exwm/run-in-background "nm-applet")
+    (exwm/run-in-background "udiskie -t")
+    (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
 
 (use-package exwm
-  :if dw/exwm-enabled
+  :ensure t
   :config
-
   (add-hook 'exwm-mode-hook
-            (lambda ()
-              (evil-local-set-key 'motion (kbd "C-u") nil)))
+	    (lambda ()
+	      (evil-local-set-key 'motion (kbd "C-u") nil)))
 
-  (defun dw/setup-window-by-class ()
-    (interactive)
-    (pcase exwm-class-name
-      ("Vimb" (exwm-workspace-move-window 2))
-      ("qutebrowser" (exwm-workspace-move-window 2))))
 
   ;; Do some post-init setup
   (add-hook 'exwm-init-hook #'dw/exwm-init-hook)
 
   ;; Manipulate windows as they're created
   (add-hook 'exwm-manage-finish-hook
-            (lambda ()
-              ;; Send the window where it belongs
-              (dw/setup-window-by-class)))
+	    (lambda ()
+	      ;; Send the window where it belongs
+	      (dw/setup-window-by-class)))
 
-              ;; Hide the modeline on all X windows
-              ;(exwm-layout-hide-mode-line)))
+	      ;; Hide the modeline on all X windows
+	      ;(exwm-layout-hide-mode-line)))
 
   ;; Hide the modeline on all X windows
   (add-hook 'exwm-floating-setup-hook
-            (lambda ()
-              (exwm-layout-hide-mode-line))))
+	    (lambda ()
+	      (exwm-layout-hide-mode-line)))
+  (defun dw/setup-window-by-class ()
+    (interactive)
+    (pcase exwm-class-name
+      ("Pidgin" (exwm-workspace-move-window 0))
+      ("Pidgin<2>" (exwm-workspace-move-window 0))
+      ("discord" (exwm-workspace-move-window 3))
+      ("Microsoft Teams - Preview" (exwm-workspace-move-window 3))
+      ("Spotify" (exwm-workspace-move-window 4))
+      ("Vimb" (exwm-workspace-move-window 2))
+      ("qutebrowser" (exwm-workspace-move-window 2))
+      ("qjackctl" (exwm-floating-toggle-floating))
+      ("mpv" (exwm-floating-toggle-floating)
+	     (dw/exwm-floating-toggle-pinned))
+      ("gsi" (exwm-input-toggle-keyboard)))))
 
 (use-package exwm-systemtray
-  :disabled
-  :if dw/exwm-enabled
   :after (exwm)
   :config
   (exwm-systemtray-enable)
@@ -141,7 +150,7 @@
 (defun dw/start-panel ()
   (interactive)
   (dw/kill-panel)
-  (setq dw/panel-process (start-process-shell-command "polybar" nil "polybar panel")))
+  (setq dw/panel-process (start-process-shell-command "polybar" nil "~/.guix-extra-profiles/desktop/desktop/bin/polybar panel")))
 
 (defun dw/update-screen-layout ()
   (interactive)
@@ -162,6 +171,59 @@
 (when dw/exwm-enabled
   ;; Configure the desktop for first load
   (add-hook 'exwm-init-hook #'dw/on-exwm-init))
+
+(dw/start-panel)
+
+(defun dw/send-polybar-hook (name number)
+  (start-process-shell-command "polybar-msg" nil (format "polybar-msg hook %s %s" name number)))
+
+(defun dw/update-polybar-exwm (&optional path)
+  (dw/send-polybar-hook "exwm" 1)
+  (dw/send-polybar-hook "exwm-path" 1))
+
+(defun dw/update-polybar-telegram ()
+  (dw/send-polybar-hook "telegram" 1))
+
+(defun dw/polybar-exwm-workspace ()
+  (pcase exwm-workspace-current-index
+    (0 "")
+    (1 "")
+    (2 "")
+    (3 "")
+    (4 "")))
+
+(defun dw/polybar-exwm-workspace-path ()
+  (let ((workspace-path (frame-parameter nil 'bufler-workspace-path-formatted)))
+    (if workspace-path
+        (substring-no-properties workspace-path)
+      "")))
+
+(defun dw/polybar-mail-count (max-count)
+  (if (and dw/mail-enabled dw/mu4e-inbox-query)
+    (let* ((mail-count (shell-command-to-string
+                         (format "mu find --nocolor -n %s \"%s\" | wc -l" max-count dw/mu4e-inbox-query))))
+      (format " %s" (string-trim mail-count)))
+    ""))
+
+(defun dw/telega-normalize-name (chat-name)
+  (let* ((trimmed-name (string-trim-left (string-trim-right chat-name "}") "◀{"))
+         (first-name (nth 0 (split-string trimmed-name " "))))
+    first-name))
+
+(defun dw/propertized-to-polybar (buffer-name)
+  (if-let* ((text (substring-no-properties buffer-name))
+            (fg-face (get-text-property 0 'face buffer-name))
+            (fg-color (face-attribute fg-face :foreground)))
+    (format "%%{F%s}%s%%{F-}" fg-color (dw/telega-normalize-name text))
+    text))
+
+(defun dw/polybar-telegram-chats ()
+  (if (> (length tracking-buffers) 0)
+    (format " %s" (string-join (mapcar 'dw/propertized-to-polybar tracking-buffers) ", "))
+    ""))
+
+(add-hook 'exwm-workspace-switch-hook #'dw/update-polybar-exwm)
+(add-hook 'bufler-workspace-set-hook #'dw/update-polybar-exwm)
 
 (when dw/exwm-enabled
   ;; These keys should always pass through to Emacs
@@ -231,74 +293,22 @@
 
   ;; Workspace switching
   (setq exwm-input-global-keys
-         `(([?\s-\C-r] . exwm-reset)
-           ([?\s-w] . exwm-workspace-switch)
-           ([?\s-r] . hydra-exwm-move-resize/body)
-           ([?\s-e] . dired-jump)
-           ([?\s-E] . (lambda () (interactive) (dired "~")))
-           ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
-           ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
-           ,@(mapcar (lambda (i)
-                       `(,(kbd (format "s-%d" i)) .
-                          (lambda ()
-                           (interactive)
-                           (exwm-workspace-switch-create ,i))))
-                      (number-sequence 0 9))))
+	 `(([?\s-\C-r] . exwm-reset)
+	   ([?\s-w] . exwm-workspace-switch)
+	   ([?\s-r] . hydra-exwm-move-resize/body)
+	   ([?\s-e] . dired-jump)
+	   ([?\s-E] . (lambda () (interactive) (dired "~")))
+	   ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
+	   ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
+	   ,@(mapcar (lambda (i)
+		       `(,(kbd (format "s-%d" i)) .
+			  (lambda ()
+			   (interactive)
+			   (exwm-workspace-switch-create ,i))))
+		      (number-sequence 0 9))))
 
   (exwm-input-set-key (kbd "<s-return>") 'vterm)
   (exwm-input-set-key (kbd "s-SPC") 'app-launcher-run-app)
   (exwm-input-set-key (kbd "s-f") 'exwm-layout-toggle-fullscreen))
 
-(defun dw/send-polybar-hook (name number)
-  (start-process-shell-command "polybar-msg" nil (format "polybar-msg hook %s %s" name number)))
-
-(defun dw/update-polybar-exwm (&optional path)
-  (dw/send-polybar-hook "exwm" 1)
-  (dw/send-polybar-hook "exwm-path" 1))
-
-(defun dw/update-polybar-telegram ()
-  (dw/send-polybar-hook "telegram" 1))
-
-(defun dw/polybar-exwm-workspace ()
-  (pcase exwm-workspace-current-index
-    (0 "")
-    (1 "")
-    (2 "")
-    (3 "")
-    (4 "")))
-
-(defun dw/polybar-exwm-workspace-path ()
-  (let ((workspace-path (frame-parameter nil 'bufler-workspace-path-formatted)))
-    (if workspace-path
-        (substring-no-properties workspace-path)
-      "")))
-
-(defun dw/polybar-mail-count (max-count)
-  (if (and dw/mail-enabled dw/mu4e-inbox-query)
-    (let* ((mail-count (shell-command-to-string
-                         (format "mu find --nocolor -n %s \"%s\" | wc -l" max-count dw/mu4e-inbox-query))))
-      (format " %s" (string-trim mail-count)))
-    ""))
-
-(defun dw/telega-normalize-name (chat-name)
-  (let* ((trimmed-name (string-trim-left (string-trim-right chat-name "}") "◀{"))
-         (first-name (nth 0 (split-string trimmed-name " "))))
-    first-name))
-
-(defun dw/propertized-to-polybar (buffer-name)
-  (if-let* ((text (substring-no-properties buffer-name))
-            (fg-face (get-text-property 0 'face buffer-name))
-            (fg-color (face-attribute fg-face :foreground)))
-    (format "%%{F%s}%s%%{F-}" fg-color (dw/telega-normalize-name text))
-    text))
-
-(defun dw/polybar-telegram-chats ()
-  (if (> (length tracking-buffers) 0)
-    (format " %s" (string-join (mapcar 'dw/propertized-to-polybar tracking-buffers) ", "))
-    ""))
-
-(add-hook 'exwm-workspace-switch-hook #'dw/update-polybar-exwm)
-(add-hook 'bufler-workspace-set-hook #'dw/update-polybar-exwm)
-
 (provide 'dw-desktop)
-

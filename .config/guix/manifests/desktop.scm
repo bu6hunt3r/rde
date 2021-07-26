@@ -26,8 +26,21 @@
    "font-awesome"
    "font-google-material-design-icons"
    "gs-fonts"
-   "gtk-launch"
+   
+   "gtk+:bin"
+   "make"
    
    "polybar"
+   
+   "compton"
+   "redshift"
+   "gucharmap"
+   "fontmanager"
+   "brightnessctl"
+   "xdg-utils"      ;; For xdg-open, etc
+   "xdg-dbus-proxy" ;; For Flatpak
+   "gtk+:bin"       ;; For gtk-launch
+   "glib:bin"       ;; For gio-launch-desktop
+   "shared-mime-info"
    
 ))

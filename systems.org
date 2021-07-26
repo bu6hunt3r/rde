@@ -349,7 +349,7 @@ I also define a function called =dw/system-settings-get= which can retrieve thes
       (emacs/default-face-size . 100)
       (emacs/variable-face-size . 100)
       (emacs/fixed-face-size . 100)
-      (polybar/height . 35)
+      (polybar/height . 10)
       (polybar/font-0-size . 18)
       (polybar/font-1-size . 14)
       (polybar/font-2-size . 20)

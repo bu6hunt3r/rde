@@ -97,7 +97,7 @@ Set up ELPA, MELPA, and Org package repositories and load =use-package= to manag
 
 =======
 #+TITLE: Emacs Guix Environment
->>>>>>> 4dd6b21653ba70e112370c498b117e88579b4793
+
 * Keep .emacs.d Clean
 
 I don't want a bunch of transient files showing up as untracked in the Git repo so I move them all to another location.
@@ -164,10 +164,11 @@ Load up the desktop environment if on a machine that supports it and the =--use-
 
 #+begin_src emacs-lisp :tangle .emacs.d/init.el
 
-  (setq dw/exwm-enabled (and (not dw/is-termux)
-                             (eq window-system 'x)
-                             (seq-contains command-line-args "--use-exwm")))
+  ;; (setq dw/exwm-enabled (and (not dw/is-termux)
+  ;;                            (eq window-system 'x)
+  ;;                            (seq-contains command-line-args "--use-exwm")))
 
+  (setq dw/exwm-enabled t)
   (require 'dw-desktop)
 #+end_src
 
@@ -481,23 +482,23 @@ Different platforms need different default font sizes, and [[https://mozilla.git
   (pcase system-type
     ((or 'gnu/linux 'windows-nt 'cygwin)
      (set-face-attribute 'default nil
-                         :font "JetBrains Mono"
-                         :weight 'light
-                         :height (dw/system-settings-get 'emacs/default-face-size)))
+			 :font "JetBrains Mono"
+			 :weight 'light
+			 :height (dw/system-settings-get 'emacs/default-face-size)))
     ('darwin (set-face-attribute 'default nil :font "Fira Mono" :height 170)))
 
   ;; Set the fixed pitch face
   (set-face-attribute 'fixed-pitch nil
-                      :font "JetBrains Mono"
-                      :weight 'light
-                      :height (dw/system-settings-get 'emacs/fixed-face-size))
+		      :font "JetBrains Mono"
+		      :weight 'light
+		      :height (dw/system-settings-get 'emacs/fixed-face-size))
 
   ;; Set the variable pitch face
   (set-face-attribute 'variable-pitch nil
-                      ;; :font "Cantarell"
-                      :font "Iosevka Aile"
-                      :height (dw/system-settings-get 'emacs/variable-face-size)
-                      :weight 'light)
+		      ;; :font "Cantarell"
+		      :font "Iosevka Aile"
+		      :height (dw/system-settings-get 'emacs/variable-face-size)
+		      :weight 'light)
 
 #+end_src
 

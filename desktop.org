@@ -109,34 +109,33 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
 
 #+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
 
-(use-package exwm
-  :init
-  (setq mouse-autoselect-window nil
-        focus-follows-mouse t
-        exwm-workspace-warp-cursor t
-        exwm-workspace-number 5)
-        ;exwm-workspace-display-echo-area-timeout 5
-        ;exwm-workspace-minibuffer-position 'bottom) ;; Annoying focus issues
-  :config
-  ;; Make class name the buffer name
-  (add-hook 'exwm-update-class-hook
-            (lambda ()
-              (exwm-workspace-rename-buffer exwm-class-name)))
-  (add-hook 'exwm-update-title-hook
-            (lambda ()
-              (pcase exwm-class-name
-                ("Vimb" (exwm-workspace-rename-buffer (format "vimb: %s" exwm-title)))
-                ("qutebrowser" (exwm-workspace-rename-buffer (format "Qutebrowser: %s" exwm-title))))))
+  (use-package exwm
+    :init
+    (setq mouse-autoselect-window nil
+	  focus-follows-mouse t
+	  exwm-workspace-warp-cursor t
+	  exwm-workspace-number 5)
+	  ;exwm-workspace-display-echo-area-timeout 5
+	  ;exwm-workspace-minibuffer-position 'bottom) ;; Annoying focus issues
+    :config
+    ;; Make class name the buffer name
+    (add-hook 'exwm-update-class-hook
+	      (lambda ()
+		(exwm-workspace-rename-buffer exwm-class-name)))
+    (add-hook 'exwm-update-title-hook
+	      (lambda ()
+		(pcase exwm-class-name
+		  ("Vimb" (exwm-workspace-rename-buffer (format "vimb: %s" exwm-title)))
+		  ("qutebrowser" (exwm-workspace-rename-buffer (format "Qutebrowser: %s" exwm-title))))))
 
-  (exwm-enable))
-
-;; Enable exwm-randr before exwm-init gets called
-(use-package exwm-randr
-  :if dw/exwm-enabled
-  :after (exwm)
-  :config
-  (exwm-randr-enable)
-  (setq exwm-randr-workspace-monitor-plist '(4 "eDP-1")))
+    (exwm-enable))
+    ;; Enable exwm-randr before exwm-init gets called
+    (use-package exwm-randr
+      :if dw/exwm-enabled
+      :after (exwm)
+      :config
+      (exwm-randr-enable)
+      (setq exwm-randr-workspace-monitor-plist '(4 "DP-2")))
 
 #+end_src
 
@@ -203,35 +202,18 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
       (eshell))
 
     ;; Launch apps that will run in the background
-  ;;   (exwm/run-in-background "dunst")
-  ;;   (exwm/run-in-background "nm-applet")
-  ;;   (exwm/run-in-background "syncthing-gtk --minimized")
-  ;;   (exwm/run-in-background "udiskie -t")
-  ;;   (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
+      (exwm/run-in-background "dunst")
+      (exwm/run-in-background "nm-applet")
+      (exwm/run-in-background "udiskie -t")
+      (exwm/run-in-background "redshift -l 47.675510:-122.203362 -t 6500:3500"))
 
-  ;; (use-pack
-   age exwm
-    :if dw/exwm-enabled
+  (use-package exwm
+    :ensure t
     :config
-
     (add-hook 'exwm-mode-hook
 	      (lambda ()
 		(evil-local-set-key 'motion (kbd "C-u") nil)))
 
-    (defun dw/setup-window-by-class ()
-      (interactive)
-      (pcase exwm-class-name
-	("Pidgin" (exwm-workspace-move-window 0))
-	("Pidgin<2>" (exwm-workspace-move-window 0))
-	("discord" (exwm-workspace-move-window 3))
-	("Microsoft Teams - Preview" (exwm-workspace-move-window 3))
-	("Spotify" (exwm-workspace-move-window 4))
-	("Vimb" (exwm-workspace-move-window 2))
-	("qutebrowser" (exwm-workspace-move-window 2))
-	("qjackctl" (exwm-floating-toggle-floating))
-	("mpv" (exwm-floating-toggle-floating)
-	       (dw/exwm-floating-toggle-pinned))
-	("gsi" (exwm-input-toggle-keyboard))))
 
     ;; Do some post-init setup
     (add-hook 'exwm-init-hook #'dw/exwm-init-hook)
@@ -248,11 +230,23 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
     ;; Hide the modeline on all X windows
     (add-hook 'exwm-floating-setup-hook
 	      (lambda ()
-		(exwm-layout-hide-mode-line))))
+		(exwm-layout-hide-mode-line)))
+    (defun dw/setup-window-by-class ()
+      (interactive)
+      (pcase exwm-class-name
+	("Pidgin" (exwm-workspace-move-window 0))
+	("Pidgin<2>" (exwm-workspace-move-window 0))
+	("discord" (exwm-workspace-move-window 3))
+	("Microsoft Teams - Preview" (exwm-workspace-move-window 3))
+	("Spotify" (exwm-workspace-move-window 4))
+	("Vimb" (exwm-workspace-move-window 2))
+	("qutebrowser" (exwm-workspace-move-window 2))
+	("qjackctl" (exwm-floating-toggle-floating))
+	("mpv" (exwm-floating-toggle-floating)
+	       (dw/exwm-floating-toggle-pinned))
+	("gsi" (exwm-input-toggle-keyboard)))))
 
   (use-package exwm-systemtray
-    :disabled
-    :if dw/exwm-enabled
     :after (exwm)
     :config
     (exwm-systemtray-enable)
@@ -264,49 +258,50 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
 
 #+begin_src emacs-lisp :tangle .emacs.d/lisp/dw-desktop.el
 
-(defun dw/run-xmodmap ()
-  (interactive)
-  (start-process-shell-command "xmodmap" nil "xmodmap ~/.dotfiles/.config/i3/Xmodmap"))
+  (defun dw/run-xmodmap ()
+    (interactive)
+    (start-process-shell-command "xmodmap" nil "xmodmap ~/.dotfiles/.config/i3/Xmodmap"))
 
-(defun dw/update-wallpapers ()
-  (interactive)
-  (start-process-shell-command
-   "feh" nil
-   (format "feh --bg-scale ~/.dotfiles/backgrounds/%s" (alist-get 'desktop/background dw/system-settings))))
+  (defun dw/update-wallpapers ()
+    (interactive)
+    (start-process-shell-command
+     "feh" nil
+     (format "feh --bg-scale ~/.dotfiles/backgrounds/%s" (alist-get 'desktop/background dw/system-settings))))
 
-(setq dw/panel-process nil)
-(defun dw/kill-panel ()
-  (interactive)
-  (when dw/panel-process
-    (ignore-errors
-      (kill-process dw/panel-process)))
-  (setq dw/panel-process nil))
+  (setq dw/panel-process nil)
+  (defun dw/kill-panel ()
+    (interactive)
+    (when dw/panel-process
+      (ignore-errors
+	(kill-process dw/panel-process)))
+    (setq dw/panel-process nil))
 
-(defun dw/start-panel ()
-  (interactive)
-  (dw/kill-panel)
-  (setq dw/panel-process (start-process-shell-command "polybar" nil "polybar panel")))
+  (defun dw/start-panel ()
+    (interactive)
+    (dw/kill-panel)
+    (setq dw/panel-process (start-process-shell-command "polybar" nil "~/.guix-extra-profiles/desktop/desktop/bin/polybar panel")))
 
-(defun dw/update-screen-layout ()
-  (interactive)
-  (let ((layout-script "~/.bin/update-screens"))
-     (message "Running screen layout script: %s" layout-script)
-     (start-process-shell-command "xrandr" nil layout-script)))
+  (defun dw/update-screen-layout ()
+    (interactive)
+    (let ((layout-script "~/.bin/update-screens"))
+       (message "Running screen layout script: %s" layout-script)
+       (start-process-shell-command "xrandr" nil layout-script)))
 
-(defun dw/configure-desktop ()
-  (interactive)
-    (dw/run-xmodmap)
-    (dw/update-screen-layout)
-    (run-at-time "2 sec" nil (lambda () (dw/update-wallpapers))))
+  (defun dw/configure-desktop ()
+    (interactive)
+      (dw/run-xmodmap)
+      (dw/update-screen-layout)
+      (run-at-time "2 sec" nil (lambda () (dw/update-wallpapers))))
 
-(defun dw/on-exwm-init ()
-  (dw/configure-desktop)
-  (dw/start-panel))
+  (defun dw/on-exwm-init ()
+    (dw/configure-desktop)
+    (dw/start-panel))
 
-(when dw/exwm-enabled
-  ;; Configure the desktop for first load
-  (add-hook 'exwm-init-hook #'dw/on-exwm-init))
+  (when dw/exwm-enabled
+    ;; Configure the desktop for first load
+    (add-hook 'exwm-init-hook #'dw/on-exwm-init))
 
+  (dw/start-panel)
 #+end_src
 
 ** Panel
@@ -374,16 +369,16 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
     ;; These keys should always pass through to Emacs
     (setq exwm-input-prefix-keys
       '(?\C-x
-        ?\C-h
-        ?\M-x
-        ?\M-`
-        ?\M-&
-        ?\M-:
-        ?\C-\M-j  ;; Buffer list
-        ?\C-\M-k  ;; Browser list
-        ?\C-\M-n  ;; Next workspace
-        ?\C-\     ;; Ctrl+Space
-        ?\C-\;))
+	?\C-h
+	?\M-x
+	?\M-`
+	?\M-&
+	?\M-:
+	?\C-\M-j  ;; Buffer list
+	?\C-\M-k  ;; Browser list
+	?\C-\M-n  ;; Next workspace
+	?\C-\     ;; Ctrl+Space
+	?\C-\;))
 
     ;; Ctrl+Q will enable the next key to be sent directly
     (define-key exwm-mode-map [?\C-q] 'exwm-input-send-next-key)
@@ -438,19 +433,19 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
 
     ;; Workspace switching
     (setq exwm-input-global-keys
-           `(([?\s-\C-r] . exwm-reset)
-             ([?\s-w] . exwm-workspace-switch)
-             ([?\s-r] . hydra-exwm-move-resize/body)
-             ([?\s-e] . dired-jump)
-             ([?\s-E] . (lambda () (interactive) (dired "~")))
-             ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
-             ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
-             ,@(mapcar (lambda (i)
-                         `(,(kbd (format "s-%d" i)) .
-                            (lambda ()
-                             (interactive)
-                             (exwm-workspace-switch-create ,i))))
-                        (number-sequence 0 9))))
+	   `(([?\s-\C-r] . exwm-reset)
+	     ([?\s-w] . exwm-workspace-switch)
+	     ([?\s-r] . hydra-exwm-move-resize/body)
+	     ([?\s-e] . dired-jump)
+	     ([?\s-E] . (lambda () (interactive) (dired "~")))
+	     ([?\s-Q] . (lambda () (interactive) (kill-buffer)))
+	     ([?\s-`] . (lambda () (interactive) (exwm-workspace-switch-create 0)))
+	     ,@(mapcar (lambda (i)
+			 `(,(kbd (format "s-%d" i)) .
+			    (lambda ()
+			     (interactive)
+			     (exwm-workspace-switch-create ,i))))
+			(number-sequence 0 9))))
 
     (exwm-input-set-key (kbd "<s-return>") 'vterm)
     (exwm-input-set-key (kbd "s-SPC") 'app-launcher-run-app)
@@ -463,7 +458,7 @@ I use Emacs as the desktop window manager thanks to the excellent EXWM.  This co
 - https://github.com/ch11ng/exwm/wiki
 - https://www.reddit.com/r/emacs/comments/6huok9/exwm_configs/
 - https://ambrevar.xyz/de/index.html
-
+  
 * Panel via Polybar
 
 I use [[https://github.com/polybar/polybar][Polybar]] to display a panel at the top of the primary screen to display my current EXWM workspace, CPU usage and temperature, battery status, time, and system tray.  It uses some custom hooks back into Emacs via =emacsclient=.
@@ -494,7 +489,7 @@ underline-1 = #c792ea
 
 [bar/panel]
 width = 100%
-height = <<system-settings(name="polybar/height")>>
+height = 25
 offset-x = 0
 offset-y = 0
 fixed-center = true
@@ -515,14 +510,14 @@ padding-right = 1
 
 module-margin = 1
 
-font-0 = "Cantarell:size=<<system-settings(name="polybar/font-0-size")>>:weight=bold;2"
-font-1 = "Font Awesome:size=<<system-settings(name="polybar/font-1-size")>>;2"
-font-2 = "Material Icons:size=<<system-settings(name="polybar/font-2-size")>>;5"
-font-3 = "Fira Mono:size=<<system-settings(name="polybar/font-3-size")>>;-3"
+font-0 = "Cantarell:size=11:weight=bold;2"
+font-1 = "Font Awesome:size=12;2"
+font-2 = "Material Icons:size=12;5"
+font-3 = "Fira Mono:size=12;-3"
 
 modules-left = exwm exwm-path
 ;modules-center = spotify
-;modules-right = telegram mu4e cpu temperature battery date
+modules-right = cpu temperature battery date
 
 tray-position = right
 tray-padding = 2

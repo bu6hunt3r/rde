@@ -45,18 +45,18 @@
                   "ACTION==\"add\", SUBSYSTEM==\"backlight\", "
                   "RUN+=\"/run/current-system/profile/bin/chmod g+w /sys/class/backlight/%k/brightness\"")))
 
-  (define %my-desktop-services
-    (modify-services %desktop-services
-                     (elogind-service-type config =>
-                                           (elogind-configuration (inherit config)
-                                                                  (handle-lid-switch-external-power 'suspend)))
-                     (udev-service-type config =>
-                                        (udev-configuration (inherit config)
-                                                            (rules (cons %backlight-udev-rule
-                                                                         (udev-configuration-rules config)))))
-                     (network-manager-service-type config =>
-                                                   (network-manager-configuration (inherit config)
-                                                                                  (vpn-plugins (list network-manager-openvpn))))))
+(define %my-desktop-services
+  (modify-services %desktop-services
+                   (elogind-service-type config =>
+                                         (elogind-configuration (inherit config)
+                                                                (handle-lid-switch-external-power 'suspend)))
+                   (udev-service-type config =>
+                                      (udev-configuration (inherit config)
+                                                          (rules (cons %backlight-udev-rule
+                                                                       (udev-configuration-rules config)))))
+                   (network-manager-service-type config =>
+                                                 (network-manager-configuration (inherit config)
+                                                                                (vpn-plugins (list network-manager-openvpn))))))
 
 (define %xorg-libinput-config
   "Section \"InputClass\"
